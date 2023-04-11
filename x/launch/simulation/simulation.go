@@ -132,11 +132,13 @@ func SimulateMsgRequestAddGenesisAccount(ak types.AccountKeeper, bk types.BankKe
 	return func(
 		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
+		fee := k.RequestFee(ctx)
+
 		// Select a chain without launch triggered
 		chain, found := FindRandomChain(r, ctx, k, false, true)
 		if !found {
 			// No message if no non-triggered chain
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgRequestAddAccount, "non-triggered chain not found"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSendRequest, "non-triggered chain not found"), nil, nil
 		}
 
 		// Select a random account no in genesis
@@ -159,10 +161,10 @@ func SimulateMsgRequestAddGenesisAccount(ak types.AccountKeeper, bk types.BankKe
 			break
 		}
 		if !availableAccount {
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgRequestAddAccount, "no available account"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSendRequest, "no available account"), nil, nil
 		}
 
-		msg := sample.MsgRequestAddAccount(r,
+		msg := sample.MsgSendRequestWithAddAccount(r,
 			simAccount.Address.String(),
 			simAccount.Address.String(),
 			chain.LaunchID,
@@ -179,7 +181,7 @@ func SimulateMsgRequestAddGenesisAccount(ak types.AccountKeeper, bk types.BankKe
 			AccountKeeper:   ak,
 			Bankkeeper:      bk,
 			ModuleName:      types.ModuleName,
-			CoinsSpentInMsg: sdk.NewCoins(),
+			CoinsSpentInMsg: fee,
 		}
 		return simulation.GenAndDeliverTxWithRandFees(txCtx, helpers.DefaultGenTxGas)
 	}
@@ -190,6 +192,8 @@ func SimulateMsgRequestAddVestingAccount(ak types.AccountKeeper, bk types.BankKe
 	return func(
 		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
+		fee := k.RequestFee(ctx)
+
 		// Select a chain without launch triggered
 		chain, found := FindRandomChain(r, ctx, k, false, true)
 		if !found {
@@ -217,10 +221,10 @@ func SimulateMsgRequestAddVestingAccount(ak types.AccountKeeper, bk types.BankKe
 			break
 		}
 		if !availableAccount {
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgRequestAddAccount, "no available account"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSendRequest, "no available account"), nil, nil
 		}
 
-		msg := sample.MsgRequestAddVestingAccount(r,
+		msg := sample.MsgSendRequestWithAddVestingAccount(r,
 			simAccount.Address.String(),
 			simAccount.Address.String(),
 			chain.LaunchID,
@@ -237,7 +241,7 @@ func SimulateMsgRequestAddVestingAccount(ak types.AccountKeeper, bk types.BankKe
 			AccountKeeper:   ak,
 			Bankkeeper:      bk,
 			ModuleName:      types.ModuleName,
-			CoinsSpentInMsg: sdk.NewCoins(),
+			CoinsSpentInMsg: fee,
 		}
 		return simulation.GenAndDeliverTxWithRandFees(txCtx, helpers.DefaultGenTxGas)
 	}
@@ -248,31 +252,33 @@ func SimulateMsgRequestRemoveAccount(ak types.AccountKeeper, bk types.BankKeeper
 	return func(
 		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
+		fee := k.RequestFee(ctx)
+
 		type accChain struct {
 			address  string
 			launchID uint64
 		}
 
 		// build list of genesis and vesting accounts
-		accChainList := make([]accChain, 0)
+		accChains := make([]accChain, 0)
 		genAccs := k.GetAllGenesisAccount(ctx)
 		for _, acc := range genAccs {
-			accChainList = append(accChainList, accChain{
+			accChains = append(accChains, accChain{
 				address:  acc.Address,
 				launchID: acc.LaunchID,
 			})
 		}
 		vestAccs := k.GetAllVestingAccount(ctx)
 		for _, acc := range vestAccs {
-			accChainList = append(accChainList, accChain{
+			accChains = append(accChains, accChain{
 				address:  acc.Address,
 				launchID: acc.LaunchID,
 			})
 		}
 
 		// add entropy
-		r.Shuffle(len(accChainList), func(i, j int) {
-			accChainList[i], accChainList[j] = accChainList[j], accChainList[i]
+		r.Shuffle(len(accChains), func(i, j int) {
+			accChains[i], accChains[j] = accChains[j], accChains[i]
 		})
 
 		var (
@@ -281,7 +287,7 @@ func SimulateMsgRequestRemoveAccount(ak types.AccountKeeper, bk types.BankKeeper
 			accChainID uint64
 		)
 		found := false
-		for _, accChain := range accChainList {
+		for _, accChain := range accChains {
 			if IsLaunchTriggeredChain(ctx, k, accChain.launchID) {
 				continue
 			}
@@ -297,13 +303,13 @@ func SimulateMsgRequestRemoveAccount(ak types.AccountKeeper, bk types.BankKeeper
 			break
 		}
 		if !found {
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgRequestRemoveAccount, "genesis account not found"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSendRequest, "genesis account not found"), nil, nil
 		}
 
-		msg := types.NewMsgRequestRemoveAccount(
+		msg := types.NewMsgSendRequest(
 			simAccount.Address.String(),
 			accChainID,
-			accAddr,
+			types.NewAccountRemoval(accAddr),
 		)
 
 		txCtx := sdksimulation.OperationInput{
@@ -318,7 +324,7 @@ func SimulateMsgRequestRemoveAccount(ak types.AccountKeeper, bk types.BankKeeper
 			AccountKeeper:   ak,
 			Bankkeeper:      bk,
 			ModuleName:      types.ModuleName,
-			CoinsSpentInMsg: sdk.NewCoins(),
+			CoinsSpentInMsg: fee,
 		}
 		return simulation.GenAndDeliverTxWithRandFees(txCtx, helpers.DefaultGenTxGas)
 	}
@@ -329,16 +335,18 @@ func SimulateMsgRequestAddValidator(ak types.AccountKeeper, bk types.BankKeeper,
 	return func(
 		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
+		fee := k.RequestFee(ctx)
+
 		// Select a chain without launch triggered
 		chain, found := FindRandomChain(r, ctx, k, false, false)
 		if !found {
 			// No message if no non-triggered chain
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgRequestAddValidator, "non-triggered chain not found"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSendRequest, "non-triggered chain not found"), nil, nil
 		}
 		// Select a random account
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 		// Select between new address or coordinator address randomly
-		msg := sample.MsgRequestAddValidator(r,
+		msg := sample.MsgSendRequestWithAddValidator(r,
 			simAccount.Address.String(),
 			simAccount.Address.String(),
 			chain.LaunchID,
@@ -355,7 +363,7 @@ func SimulateMsgRequestAddValidator(ak types.AccountKeeper, bk types.BankKeeper,
 			AccountKeeper:   ak,
 			Bankkeeper:      bk,
 			ModuleName:      types.ModuleName,
-			CoinsSpentInMsg: sdk.NewCoins(),
+			CoinsSpentInMsg: fee,
 		}
 		return simulation.GenAndDeliverTxWithRandFees(txCtx, helpers.DefaultGenTxGas)
 	}
@@ -366,13 +374,15 @@ func SimulateMsgRequestRemoveValidator(ak types.AccountKeeper, bk types.BankKeep
 	return func(
 		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
+		fee := k.RequestFee(ctx)
+
 		// Select a validator
 		simAccount, valAcc, found := FindRandomValidator(r, ctx, k, accs)
 		if !found {
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgRequestRemoveValidator, "validator not found"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSendRequest, "validator not found"), nil, nil
 		}
 
-		msg := sample.MsgRequestRemoveValidator(
+		msg := sample.MsgSendRequestWithRemoveValidator(
 			simAccount.Address.String(),
 			valAcc.Address,
 			valAcc.LaunchID,
@@ -389,7 +399,45 @@ func SimulateMsgRequestRemoveValidator(ak types.AccountKeeper, bk types.BankKeep
 			AccountKeeper:   ak,
 			Bankkeeper:      bk,
 			ModuleName:      types.ModuleName,
-			CoinsSpentInMsg: sdk.NewCoins(),
+			CoinsSpentInMsg: fee,
+		}
+		return simulation.GenAndDeliverTxWithRandFees(txCtx, helpers.DefaultGenTxGas)
+	}
+}
+
+// SimulateMsgRequestParamChange simulates a MsgSendRequest message with ParamChange content
+func SimulateMsgRequestParamChange(ak types.AccountKeeper, bk types.BankKeeper, k keeper.Keeper) simtypes.Operation {
+	return func(
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
+	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
+		fee := k.RequestFee(ctx)
+
+		// Select a chain without launch triggered
+		chain, found := FindRandomChain(r, ctx, k, false, false)
+		if !found {
+			// No message if no non-triggered chain
+			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSendRequest, "non-triggered chain not found"), nil, nil
+		}
+		simAccount, _ := simtypes.RandomAcc(r, accs)
+
+		msg := sample.MsgSendRequestWithParamChange(
+			r,
+			simAccount.Address.String(),
+			chain.LaunchID,
+		)
+		txCtx := sdksimulation.OperationInput{
+			R:               r,
+			App:             app,
+			TxGen:           simappparams.MakeTestEncodingConfig().TxConfig,
+			Cdc:             nil,
+			Msg:             &msg,
+			MsgType:         msg.Type(),
+			Context:         ctx,
+			SimAccount:      simAccount,
+			AccountKeeper:   ak,
+			Bankkeeper:      bk,
+			ModuleName:      types.ModuleName,
+			CoinsSpentInMsg: fee,
 		}
 		return simulation.GenAndDeliverTxWithRandFees(txCtx, helpers.DefaultGenTxGas)
 	}
@@ -412,7 +460,7 @@ func SimulateMsgTriggerLaunch(ak types.AccountKeeper, bk types.BankKeeper, k kee
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgTriggerLaunch, err.Error()), nil, nil
 		}
-		msg := sample.MsgTriggerLaunch(r, simAccount.Address.String(), chain.LaunchID)
+		msg := sample.MsgTriggerLaunch(r, simAccount.Address.String(), chain.LaunchID, ctx.BlockTime())
 		txCtx := sdksimulation.OperationInput{
 			R:               r,
 			App:             app,
@@ -492,7 +540,7 @@ func SimulateMsgRevertLaunch(ak types.AccountKeeper, bk types.BankKeeper, k keep
 		}
 
 		// Wait for a specific delay once the chain is launched
-		if ctx.BlockTime().Unix() < chain.LaunchTimestamp+k.RevertDelay(ctx) {
+		if ctx.BlockTime().Before(chain.LaunchTime.Add(k.RevertDelay(ctx))) {
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgRevertLaunch, "invalid chain launch timestamp"), nil, nil
 		}
 

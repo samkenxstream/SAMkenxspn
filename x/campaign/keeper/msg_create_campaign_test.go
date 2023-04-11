@@ -3,13 +3,11 @@ package keeper_test
 import (
 	"testing"
 
-	testkeeper "github.com/tendermint/spn/testutil/keeper"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/stretchr/testify/require"
 
+	testkeeper "github.com/tendermint/spn/testutil/keeper"
 	"github.com/tendermint/spn/testutil/sample"
 	"github.com/tendermint/spn/x/campaign/keeper"
 	"github.com/tendermint/spn/x/campaign/types"
@@ -36,15 +34,16 @@ func initCreationFeeAndFundCoordAccounts(
 		coins = coins.Add(coin)
 	}
 
-	// add `coins` to balance of each coordinator address
-	for _, addr := range addrs {
-		accAddr, err := sdk.AccAddressFromBech32(addr)
-		require.NoError(t, err)
-		err = bk.MintCoins(sdkCtx, types.ModuleName, coins)
-		require.NoError(t, err)
-		err = bk.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, accAddr, coins)
-		require.NoError(t, err)
-	}
+	t.Run("should add coins to balance of each coordinator address", func(t *testing.T) {
+		for _, addr := range addrs {
+			accAddr, err := sdk.AccAddressFromBech32(addr)
+			require.NoError(t, err)
+			err = bk.MintCoins(sdkCtx, types.ModuleName, coins)
+			require.NoError(t, err)
+			err = bk.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, accAddr, coins)
+			require.NoError(t, err)
+		}
+	})
 }
 
 func TestMsgCreateCampaign(t *testing.T) {
@@ -54,17 +53,19 @@ func TestMsgCreateCampaign(t *testing.T) {
 		sdkCtx, tk, ts      = testkeeper.NewTestSetup(t)
 		ctx                 = sdk.WrapSDKContext(sdkCtx)
 		campaignCreationFee = sample.Coins(r)
+		maxMetadataLength   = tk.CampaignKeeper.MaxMetadataLength(sdkCtx)
 	)
 
-	// Create coordinators
-	for i := range coordAddrs {
-		addr := sample.Address(r)
-		coordAddrs[i] = addr
-		msgCreateCoordinator := sample.MsgCreateCoordinator(addr)
-		resCoord, err := ts.ProfileSrv.CreateCoordinator(ctx, &msgCreateCoordinator)
-		require.NoError(t, err)
-		coordMap[addr] = resCoord.CoordinatorID
-	}
+	t.Run("should allow creation of coordinators", func(t *testing.T) {
+		for i := range coordAddrs {
+			addr := sample.Address(r)
+			coordAddrs[i] = addr
+			msgCreateCoordinator := sample.MsgCreateCoordinator(addr)
+			resCoord, err := ts.ProfileSrv.CreateCoordinator(ctx, &msgCreateCoordinator)
+			require.NoError(t, err)
+			coordMap[addr] = resCoord.CoordinatorID
+		}
+	})
 
 	// assign random sdk.Coins to `campaignCreationFee` param and provide balance to coordinators
 	// coordAddrs[2] is not funded
@@ -77,7 +78,7 @@ func TestMsgCreateCampaign(t *testing.T) {
 		err        error
 	}{
 		{
-			name: "create a campaign 1",
+			name: "should allow create a campaign 1",
 			msg: types.MsgCreateCampaign{
 				CampaignName: sample.CampaignName(r),
 				Coordinator:  coordAddrs[0],
@@ -87,7 +88,7 @@ func TestMsgCreateCampaign(t *testing.T) {
 			expectedID: uint64(0),
 		},
 		{
-			name: "create a campaign from a different coordinator",
+			name: "should allow create a campaign from a different coordinator",
 			msg: types.MsgCreateCampaign{
 				CampaignName: sample.CampaignName(r),
 				Coordinator:  coordAddrs[1],
@@ -97,7 +98,7 @@ func TestMsgCreateCampaign(t *testing.T) {
 			expectedID: uint64(1),
 		},
 		{
-			name: "create a campaign from a non existing coordinator",
+			name: "should allow create a campaign from a non existing coordinator",
 			msg: types.MsgCreateCampaign{
 				CampaignName: sample.CampaignName(r),
 				Coordinator:  sample.Address(r),
@@ -107,7 +108,7 @@ func TestMsgCreateCampaign(t *testing.T) {
 			err: profiletypes.ErrCoordAddressNotFound,
 		},
 		{
-			name: "create a campaign with an invalid token supply",
+			name: "should allow create a campaign with an invalid token supply",
 			msg: types.MsgCreateCampaign{
 				CampaignName: sample.CampaignName(r),
 				Coordinator:  coordAddrs[0],
@@ -117,14 +118,24 @@ func TestMsgCreateCampaign(t *testing.T) {
 			err: types.ErrInvalidTotalSupply,
 		},
 		{
-			name: "insufficient balance to cover creation fee",
+			name: "should fail for insufficient balance to cover creation fee",
 			msg: types.MsgCreateCampaign{
 				CampaignName: sample.CampaignName(r),
 				Coordinator:  coordAddrs[2],
 				TotalSupply:  sample.TotalSupply(r),
 				Metadata:     sample.Metadata(r, 20),
 			},
-			err: sdkerrors.ErrInsufficientFunds,
+			err: types.ErrFundCommunityPool,
+		},
+		{
+			name: "should fail when the change had too long metadata",
+			msg: types.MsgCreateCampaign{
+				Coordinator:  sample.Address(r),
+				CampaignName: sample.CampaignName(r),
+				TotalSupply:  sample.TotalSupply(r),
+				Metadata:     sample.Metadata(r, maxMetadataLength+1),
+			},
+			err: types.ErrInvalidMetadataLength,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -157,7 +168,7 @@ func TestMsgCreateCampaign(t *testing.T) {
 
 			// check fee deduction
 			postBalance := tk.BankKeeper.SpendableCoins(sdkCtx, accAddr)
-			require.True(t, preBalance.Sub(campaignCreationFee).IsEqual(postBalance))
+			require.True(t, preBalance.Sub(campaignCreationFee...).IsEqual(postBalance))
 		})
 	}
 }

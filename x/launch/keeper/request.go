@@ -4,14 +4,13 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	profiletypes "github.com/tendermint/spn/x/profile/types"
-
+	sdkerrors "cosmossdk.io/errors"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	ignterrors "github.com/ignite/modules/pkg/errors"
 
-	spnerrors "github.com/tendermint/spn/pkg/errors"
 	"github.com/tendermint/spn/x/launch/types"
+	profiletypes "github.com/tendermint/spn/x/profile/types"
 )
 
 // GetRequestCounter get request counter for a specific chain ID
@@ -63,21 +62,6 @@ func (k Keeper) AppendRequest(ctx sdk.Context, request types.Request) uint64 {
 	k.SetRequestCounter(ctx, request.LaunchID, counter+1)
 
 	return counter
-}
-
-// GetRequestCount returns the number of request from a launch ID
-// TODO: add tests https://github.com/tendermint/spn/issues/642
-func (k Keeper) GetRequestCount(ctx sdk.Context, launchID uint64) (count uint64) {
-	requestPoolPrefix := append(types.KeyPrefix(types.RequestKeyPrefix), types.RequestPoolKey(launchID)...)
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), requestPoolPrefix)
-	iterator := sdk.KVStorePrefixIterator(store, []byte{})
-
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		count++
-	}
-
-	return count
 }
 
 // GetRequest returns a request from its index
@@ -135,7 +119,7 @@ func CheckAccount(ctx sdk.Context, k Keeper, launchID uint64, address string) (b
 	_, foundGenesis := k.GetGenesisAccount(ctx, launchID, address)
 	_, foundVesting := k.GetVestingAccount(ctx, launchID, address)
 	if foundGenesis && foundVesting {
-		return false, spnerrors.Critical(
+		return false, ignterrors.Critical(
 			fmt.Sprintf("account %s for chain %d found in vesting and genesis accounts",
 				address, launchID),
 		)
@@ -160,6 +144,9 @@ func ApplyRequest(
 	switch requestContent := request.Content.Content.(type) {
 	case *types.RequestContent_GenesisAccount:
 		ga := requestContent.GenesisAccount
+		if !chain.AccountBalance.Empty() {
+			ga.Coins = chain.AccountBalance
+		}
 		k.SetGenesisAccount(ctx, *ga)
 		err = ctx.EventManager().EmitTypedEvent(&types.EventGenesisAccountAdded{
 			Address:            ga.Address,
@@ -170,6 +157,21 @@ func ApplyRequest(
 
 	case *types.RequestContent_VestingAccount:
 		va := requestContent.VestingAccount
+		if !chain.AccountBalance.Empty() {
+			switch opt := va.VestingOptions.Options.(type) { //nolint:gocritic
+			case *types.VestingOptions_DelayedVesting:
+				dv := opt.DelayedVesting
+				va = &types.VestingAccount{
+					Address:  va.Address,
+					LaunchID: va.LaunchID,
+					VestingOptions: *types.NewDelayedVesting(
+						chain.AccountBalance,
+						chain.AccountBalance,
+						dv.EndTime,
+					),
+				}
+			}
+		}
 		k.SetVestingAccount(ctx, *va)
 		err = ctx.EventManager().EmitTypedEvent(&types.EventVestingAccountAdded{
 			Address:            va.Address,
@@ -214,6 +216,16 @@ func ApplyRequest(
 			CoordinatorAddress:      coord.Address,
 		})
 
+	case *types.RequestContent_ParamChange:
+		cp := requestContent.ParamChange
+		k.SetParamChange(ctx, *cp)
+		err = ctx.EventManager().EmitTypedEvent(&types.EventParamChanged{
+			LaunchID: cp.LaunchID,
+			Module:   cp.Module,
+			Param:    cp.Param,
+			Value:    cp.Value,
+		})
+
 	}
 	return err
 }
@@ -225,8 +237,8 @@ func CheckRequest(
 	launchID uint64,
 	request types.Request,
 ) error {
-	if err := request.Content.Validate(); err != nil {
-		return spnerrors.Critical(err.Error())
+	if err := request.Content.Validate(launchID); err != nil {
+		return ignterrors.Critical(err.Error())
 	}
 
 	switch requestContent := request.Content.Content.(type) {
@@ -282,6 +294,9 @@ func CheckRequest(
 				vr.ValAddress, launchID,
 			)
 		}
+	case *types.RequestContent_ParamChange:
+		// currently no on-chain checks can be performed on change param
 	}
+
 	return nil
 }

@@ -2,15 +2,16 @@ syntax = "proto3";
 package tendermint.spn.campaign;
 
 import "google/api/annotations.proto";
+import "cosmos/base/v1beta1/coin.proto";
 import "cosmos/base/query/v1beta1/pagination.proto";
 import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
+
 import "campaign/campaign_chains.proto";
-import "campaign/campaign_summary.proto";
 import "campaign/campaign.proto";
-import "campaign/mainnet_vesting_account.proto";
+import "campaign/vesting.proto";
 import "campaign/mainnet_account.proto";
 import "campaign/params.proto";
-// this line is used by starport scaffolding # 1
 
 option go_package = "github.com/tendermint/spn/x/campaign/types";
 
@@ -18,8 +19,7 @@ option go_package = "github.com/tendermint/spn/x/campaign/types";
 service Query {
   // Queries a campaign by id.
   rpc Campaign(QueryGetCampaignRequest) returns (QueryGetCampaignResponse) {
-    option (google.api.http).get =
-        "/tendermint/spn/campaign/campaign/{campaignID}";
+    option (google.api.http).get = "/tendermint/spn/campaign/campaign/{campaignID}";
   }
 
   // Queries a list of campaign items.
@@ -30,6 +30,12 @@ service Query {
   // Queries a campaignChains by index.
   rpc CampaignChains(QueryGetCampaignChainsRequest) returns (QueryGetCampaignChainsResponse) {
     option (google.api.http).get = "/tendermint/spn/campaign/campaign_chains/{campaignID}";
+  }
+
+  // Queries a list of SpecialAllocationsBalance items.
+  rpc SpecialAllocationsBalance(QuerySpecialAllocationsBalanceRequest)
+      returns (QuerySpecialAllocationsBalanceResponse) {
+    option (google.api.http).get = "/tendermint/spn/campaign/special_allocations_balance/{campaignID}";
   }
 
   // Queries a mainnetAccount by index.
@@ -52,26 +58,6 @@ service Query {
     option (google.api.http).get = "/tendermint/spn/campaign/mainnet_account_balance/{campaignID}";
   }
 
-  // Queries a mainnetVestingAccount by index.
-  rpc MainnetVestingAccount(QueryGetMainnetVestingAccountRequest) returns (QueryGetMainnetVestingAccountResponse) {
-    option (google.api.http).get = "/tendermint/spn/campaign/mainnet_vesting_account/{campaignID}/{address}";
-  }
-
-  // Queries a list of mainnetVestingAccount items.
-  rpc MainnetVestingAccountAll(QueryAllMainnetVestingAccountRequest) returns (QueryAllMainnetVestingAccountResponse) {
-    option (google.api.http).get = "/tendermint/spn/campaign/mainnet_vesting_account/{campaignID}";
-  }
-
-  // Queries a campaign summary
-  rpc CampaignSummary(QueryCampaignSummaryRequest) returns (QueryCampaignSummaryResponse) {
-    option (google.api.http).get = "/tendermint/spn/campaign/campaign_summary/{campaignID}";
-  }
-
-  // Queries a list of campaign summaries
-  rpc CampaignSummaries(QueryCampaignSummariesRequest) returns (QueryCampaignSummariesResponse) {
-    option (google.api.http).get = "/tendermint/spn/campaign/campaign_summary";
-  }
-
   // Params queries the parameters of the module.
   rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
     option (google.api.http).get = "/tendermint/spn/campaign/params";
@@ -81,13 +67,6 @@ service Query {
   rpc TotalShares(QueryTotalSharesRequest) returns (QueryTotalSharesResponse) {
     option (google.api.http).get = "/tendermint/spn/campaign/total_shares";
   }
-
-  // Queries a list of auction IDs of a campaign
-  rpc AuctionsOfCampaign(QueryAuctionsOfCampaignRequest) returns (QueryAuctionsOfCampaignResponse) {
-    option (google.api.http).get = "/tendermint/spn/campaign/auctions_of_campaign/{campaignID}";
-  }
-
-// this line is used by starport scaffolding # 2
 }
 
 message QueryGetCampaignRequest {
@@ -103,7 +82,7 @@ message QueryAllCampaignRequest {
 }
 
 message QueryAllCampaignResponse {
-  repeated Campaign campaign = 1 [(gogoproto.nullable) = false];
+  repeated Campaign                      campaign   = 1 [(gogoproto.nullable) = false];
   cosmos.base.query.v1beta1.PageResponse pagination = 2;
 }
 
@@ -115,9 +94,26 @@ message QueryGetCampaignChainsResponse {
   CampaignChains campaignChains = 1 [(gogoproto.nullable) = false];
 }
 
+message QuerySpecialAllocationsBalanceRequest {
+  uint64 campaignID = 1;
+}
+
+message QuerySpecialAllocationsBalanceResponse {
+  repeated cosmos.base.v1beta1.Coin genesisDistribution = 1 [
+    (gogoproto.nullable)     = false,
+    (gogoproto.casttype)     = "github.com/cosmos/cosmos-sdk/types.Coin",
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Coins"
+  ];
+  repeated cosmos.base.v1beta1.Coin claimableAirdrop = 2 [
+    (gogoproto.nullable)     = false,
+    (gogoproto.casttype)     = "github.com/cosmos/cosmos-sdk/types.Coin",
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Coins"
+  ];
+}
+
 message QueryGetMainnetAccountRequest {
   uint64 campaignID = 1;
-  string address = 2;
+  string address    = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
 }
 
 message QueryGetMainnetAccountResponse {
@@ -125,18 +121,18 @@ message QueryGetMainnetAccountResponse {
 }
 
 message QueryAllMainnetAccountRequest {
-  uint64 campaignID = 1;
+  uint64                                campaignID = 1;
   cosmos.base.query.v1beta1.PageRequest pagination = 2;
 }
 
 message QueryAllMainnetAccountResponse {
-  repeated MainnetAccount mainnetAccount = 1 [(gogoproto.nullable) = false];
-  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+  repeated MainnetAccount                mainnetAccount = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination     = 2;
 }
 
 message QueryGetMainnetAccountBalanceRequest {
   uint64 campaignID = 1;
-  string address = 2;
+  string address    = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
 }
 
 message QueryGetMainnetAccountBalanceResponse {
@@ -144,49 +140,13 @@ message QueryGetMainnetAccountBalanceResponse {
 }
 
 message QueryAllMainnetAccountBalanceRequest {
-  uint64 campaignID = 1;
+  uint64                                campaignID = 1;
   cosmos.base.query.v1beta1.PageRequest pagination = 2;
 }
 
 message QueryAllMainnetAccountBalanceResponse {
-  repeated MainnetAccountBalance mainnetAccountBalance = 1 [(gogoproto.nullable) = false];
-  cosmos.base.query.v1beta1.PageResponse pagination = 2;
-}
-
-message QueryGetMainnetVestingAccountRequest {
-  uint64 campaignID = 1;
-  string address = 2;
-}
-
-message QueryGetMainnetVestingAccountResponse {
-  MainnetVestingAccount mainnetVestingAccount = 1 [(gogoproto.nullable) = false];
-}
-
-message QueryAllMainnetVestingAccountRequest {
-  uint64 campaignID = 1;
-  cosmos.base.query.v1beta1.PageRequest pagination = 2;
-}
-
-message QueryAllMainnetVestingAccountResponse {
-  repeated MainnetVestingAccount mainnetVestingAccount = 1 [(gogoproto.nullable) = false];
-  cosmos.base.query.v1beta1.PageResponse pagination = 2;
-}
-
-message QueryCampaignSummaryRequest {
-  uint64 campaignID = 1;
-}
-
-message QueryCampaignSummaryResponse {
-  CampaignSummary campaignSummary = 1  [(gogoproto.nullable) = false];
-}
-
-message QueryCampaignSummariesRequest {
-  cosmos.base.query.v1beta1.PageRequest pagination = 2;
-}
-
-message QueryCampaignSummariesResponse {
-  repeated CampaignSummary campaignSummaries = 1  [(gogoproto.nullable) = false];
-  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+  repeated MainnetAccountBalance         mainnetAccountBalance = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination            = 2;
 }
 
 // QueryParamsRequest is request type for the Query/Params RPC method.
@@ -202,13 +162,3 @@ message QueryTotalSharesRequest {}
 message QueryTotalSharesResponse {
   uint64 totalShares = 1;
 }
-
-message QueryAuctionsOfCampaignRequest {
-  uint64 campaignID = 1;
-}
-
-message QueryAuctionsOfCampaignResponse {
-  repeated uint64 auctionIDs = 1;
-}
-
-// this line is used by starport scaffolding # 3

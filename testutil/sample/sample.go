@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	sdkmath "cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -15,7 +16,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	ibctypes "github.com/cosmos/ibc-go/v2/modules/core/types"
+	ibctypes "github.com/cosmos/ibc-go/v6/modules/core/types"
 	"github.com/stretchr/testify/require"
 	fundraising "github.com/tendermint/fundraising/x/fundraising/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -69,7 +70,7 @@ func Uint64(r *rand.Rand) uint64 {
 
 // String returns a random string of length n
 func String(r *rand.Rand, n int) string {
-	var letter = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	letter := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 	randomString := make([]rune, n)
 	for i := range randomString {
@@ -80,7 +81,18 @@ func String(r *rand.Rand, n int) string {
 
 // AlphaString returns a random string with lowercase alpha char of length n
 func AlphaString(r *rand.Rand, n int) string {
-	var letter = []rune("abcdefghijklmnopqrstuvwxyz")
+	letter := []rune("abcdefghijklmnopqrstuvwxyz")
+
+	randomString := make([]rune, n)
+	for i := range randomString {
+		randomString[i] = letter[r.Intn(len(letter))]
+	}
+	return string(randomString)
+}
+
+// NonAlphaString returns a random string with non alpha char of length n
+func NonAlphaString(r *rand.Rand, n int) string {
+	letter := []rune("0123456789!@#$%^&*()_+")
 
 	randomString := make([]rune, n)
 	for i := range randomString {
@@ -146,19 +158,19 @@ func Delegation(t testing.TB, r *rand.Rand, addr string) stakingtypes.Delegation
 
 // Coin returns a sample coin structure
 func Coin(r *rand.Rand) sdk.Coin {
-	return sdk.NewCoin(AlphaString(r, 5), sdk.NewInt(r.Int63n(10000)+1))
+	return sdk.NewCoin(AlphaString(r, 5), sdkmath.NewInt(r.Int63n(10000)+1))
 }
 
 // CoinWithRange returns a sample coin structure where the amount is a random number between provided min and max values
 // with a random denom
 func CoinWithRange(r *rand.Rand, min, max int64) sdk.Coin {
-	return sdk.NewCoin(AlphaString(r, 5), sdk.NewInt(r.Int63n(max-min)+min))
+	return sdk.NewCoin(AlphaString(r, 5), sdkmath.NewInt(r.Int63n(max-min)+min))
 }
 
 // CoinWithRangeAmount returns a sample coin structure where the amount is a random number between provided min and max values
 // with a given denom
 func CoinWithRangeAmount(r *rand.Rand, denom string, min, max int64) sdk.Coin {
-	return sdk.NewCoin(denom, sdk.NewInt(r.Int63n(max-min)+min))
+	return sdk.NewCoin(denom, sdkmath.NewInt(r.Int63n(max-min)+min))
 }
 
 // Coins returns a sample coins structure
@@ -191,4 +203,19 @@ func Duration(r *rand.Rand) time.Duration {
 // DurationFromRange returns a sample time.Duration between the min and max values provided
 func DurationFromRange(r *rand.Rand, min, max time.Duration) time.Duration {
 	return time.Duration(r.Int63n(int64(max-min))) + min
+}
+
+// Int returns a sample sdkmath.Int
+func Int(r *rand.Rand) sdkmath.Int {
+	return sdkmath.NewInt(r.Int63())
+}
+
+// Time returns a sample time
+func Time(r *rand.Rand) time.Time {
+	return time.UnixMilli(r.Int63n(1000) + 1).UTC()
+}
+
+// ZeroTime returns time.Time that represents 0
+func ZeroTime() time.Time {
+	return time.UnixMilli(0).UTC()
 }

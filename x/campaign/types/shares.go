@@ -1,11 +1,12 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/pkg/errors"
 )
 
 // Shares represents the portion of a supply
@@ -64,7 +65,7 @@ func IncreaseShares(shares, newShares Shares) Shares {
 
 // DecreaseShares decreases the number of shares or returns a error if shares can't be decreased
 func DecreaseShares(shares, toDecrease Shares) (Shares, error) {
-	decreasedCoins, negative := sdk.Coins(shares).SafeSub(sdk.Coins(toDecrease))
+	decreasedCoins, negative := sdk.Coins(shares).SafeSub(sdk.Coins(toDecrease)...)
 	if negative {
 		return nil, errors.New("shares cannot be decreased to negative")
 	}
@@ -73,14 +74,21 @@ func DecreaseShares(shares, toDecrease Shares) (Shares, error) {
 }
 
 // IsTotalSharesReached checks if the provided shares overflow the total number of shares
-func IsTotalSharesReached(shares Shares, totalShareNumber uint64) bool {
+func IsTotalSharesReached(shares Shares, maximumTotalShareNumber uint64) (bool, error) {
+	if err := sdk.Coins(shares).Validate(); err != nil {
+		return false, errors.Wrap(err, "invalid share")
+	}
+	if err := CheckShares(shares); err != nil {
+		return false, errors.Wrap(err, "invalid share format")
+	}
+
 	for _, share := range shares {
-		if share.Amount.Uint64() > totalShareNumber {
-			return true
+		if share.Amount.Uint64() > maximumTotalShareNumber {
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // IsAllLTE returns true iff for every denom in shares, the denom is present at
@@ -111,7 +119,7 @@ func (shares Shares) CoinsFromTotalSupply(totalSupply sdk.Coins, totalShareNumbe
 	}
 
 	// set map for performance
-	sharesMap := make(map[string]sdk.Int)
+	sharesMap := make(map[string]sdkmath.Int)
 	for _, share := range shares {
 		if share.Amount.Uint64() > totalShareNumber {
 			return coins, fmt.Errorf(
@@ -130,7 +138,7 @@ func (shares Shares) CoinsFromTotalSupply(totalSupply sdk.Coins, totalShareNumbe
 		shareDenom := SharePrefix + supply.Denom
 		if amount, ok := sharesMap[shareDenom]; ok {
 			// coin balance = (supply * share) / total share
-			coinBalance := (supply.Amount.Mul(amount)).Quo(sdk.NewIntFromUint64(totalShareNumber))
+			coinBalance := (supply.Amount.Mul(amount)).Quo(sdkmath.NewIntFromUint64(totalShareNumber))
 
 			if !coinBalance.IsZero() {
 				coins = append(coins, sdk.NewCoin(supply.Denom, coinBalance))

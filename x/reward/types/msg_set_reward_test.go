@@ -3,8 +3,8 @@ package types_test
 import (
 	"testing"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tendermint/spn/testutil/sample"
@@ -18,40 +18,7 @@ func TestMsgSetRewards_ValidateBasic(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "invalid provider address",
-			msg: types.MsgSetRewards{
-				LaunchID:         1,
-				Provider:         "invalid address",
-				Coins:            sample.Coins(r),
-				LastRewardHeight: 50,
-			},
-			err: sdkerrors.ErrInvalidAddress,
-		},
-		{
-			name: "invalid coins",
-			msg: types.MsgSetRewards{
-				LaunchID: 1,
-				Provider: sample.Address(r),
-				Coins: sdk.Coins{sdk.Coin{
-					Denom:  "invalid denom",
-					Amount: sdk.ZeroInt(),
-				}},
-				LastRewardHeight: 50,
-			},
-			err: types.ErrInvalidRewardPoolCoins,
-		},
-		{
-			name: "negative last reward height",
-			msg: types.MsgSetRewards{
-				LaunchID:         1,
-				Provider:         sample.Address(r),
-				Coins:            sample.Coins(r),
-				LastRewardHeight: -1,
-			},
-			err: sdkerrors.ErrInvalidRequest,
-		},
-		{
-			name: "valid reward pool message",
+			name: "should allow valid reward pool msg",
 			msg: types.MsgSetRewards{
 				LaunchID:         1,
 				Provider:         sample.Address(r),
@@ -60,13 +27,46 @@ func TestMsgSetRewards_ValidateBasic(t *testing.T) {
 			},
 		},
 		{
-			name: "valid reward pool message with empty coins",
+			name: "should allow valid reward pool msg with empty coins",
 			msg: types.MsgSetRewards{
 				LaunchID:         1,
 				Provider:         sample.Address(r),
 				Coins:            sdk.NewCoins(),
 				LastRewardHeight: 50,
 			},
+		},
+		{
+			name: "should prevent msg with invalid provider address",
+			msg: types.MsgSetRewards{
+				LaunchID:         1,
+				Provider:         "invalid address",
+				Coins:            sample.Coins(r),
+				LastRewardHeight: 50,
+			},
+			err: types.ErrInvalidProviderAddress,
+		},
+		{
+			name: "should prevent msg with invalid coins",
+			msg: types.MsgSetRewards{
+				LaunchID: 1,
+				Provider: sample.Address(r),
+				Coins: sdk.Coins{sdk.Coin{
+					Denom:  "invalid denom",
+					Amount: sdkmath.ZeroInt(),
+				}},
+				LastRewardHeight: 50,
+			},
+			err: types.ErrInvalidRewardPoolCoins,
+		},
+		{
+			name: "should prevent msg with negative last reward height",
+			msg: types.MsgSetRewards{
+				LaunchID:         1,
+				Provider:         sample.Address(r),
+				Coins:            sample.Coins(r),
+				LastRewardHeight: -1,
+			},
+			err: types.ErrInvalidRewardHeight,
 		},
 	}
 	for _, tt := range tests {

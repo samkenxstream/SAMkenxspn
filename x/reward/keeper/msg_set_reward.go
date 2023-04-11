@@ -3,10 +3,10 @@ package keeper
 import (
 	"context"
 
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	ignterrors "github.com/ignite/modules/pkg/errors"
 
-	spnerrors "github.com/tendermint/spn/pkg/errors"
 	launchtypes "github.com/tendermint/spn/x/launch/types"
 	"github.com/tendermint/spn/x/reward/types"
 )
@@ -35,7 +35,7 @@ func (k msgServer) SetRewards(goCtx context.Context, msg *types.MsgSetRewards) (
 
 	provider, err := sdk.AccAddressFromBech32(msg.Provider)
 	if err != nil {
-		return nil, spnerrors.Criticalf("can't parse provider address %s", err.Error())
+		return nil, ignterrors.Criticalf("can't parse provider address %s", err.Error())
 	}
 
 	var (
@@ -46,7 +46,7 @@ func (k msgServer) SetRewards(goCtx context.Context, msg *types.MsgSetRewards) (
 	if !poolFound {
 		// create the reward pool and transfer tokens if not created yet
 		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, provider, types.ModuleName, msg.Coins); err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrInsufficientFunds, err.Error())
+			return nil, sdkerrors.Wrap(types.ErrInsufficientFunds, err.Error())
 		}
 		rewardPool = types.NewRewardPool(msg.LaunchID, 0)
 	} else {
@@ -104,7 +104,7 @@ func SetBalance(
 			provider,
 			poolCoins,
 		); err != nil {
-			return spnerrors.Critical(err.Error())
+			return ignterrors.Critical(err.Error())
 		}
 	}
 	if coins != nil && !coins.IsZero() {
@@ -114,7 +114,7 @@ func SetBalance(
 			types.ModuleName,
 			coins,
 		); err != nil {
-			return sdkerrors.Wrap(sdkerrors.ErrInsufficientFunds, err.Error())
+			return sdkerrors.Wrap(types.ErrInsufficientFunds, err.Error())
 		}
 	}
 	return nil

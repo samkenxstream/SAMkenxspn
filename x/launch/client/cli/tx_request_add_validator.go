@@ -2,7 +2,7 @@ package cli
 
 import (
 	"encoding/base64"
-	"io/ioutil"
+	"os"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -31,7 +31,7 @@ func CmdRequestAddValidator() *cobra.Command {
 			}
 
 			// Read gentxFile
-			gentxBytes, err := ioutil.ReadFile(args[1])
+			gentxBytes, err := os.ReadFile(args[1])
 			if err != nil {
 				return err
 			}
@@ -67,14 +67,10 @@ func CmdRequestAddValidator() *cobra.Command {
 				peer = types.NewPeerConn(args[4], args[5])
 			}
 
-			msg := types.NewMsgRequestAddValidator(
-				clientCtx.GetFromAddress().String(),
+			msg := types.NewMsgSendRequest(
+				fromAddr,
 				launchID,
-				valAddr,
-				gentxBytes,
-				consPubKey,
-				selfDelegation,
-				peer,
+				types.NewGenesisValidator(launchID, valAddr, gentxBytes, consPubKey, selfDelegation, peer),
 			)
 			if err := msg.ValidateBasic(); err != nil {
 				return err

@@ -3,6 +3,7 @@ package simulation
 import (
 	"math/rand"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 
@@ -10,10 +11,8 @@ import (
 	"github.com/tendermint/spn/x/campaign/types"
 )
 
-var (
-	// ShareDenoms are the denom used for the shares in the simulation
-	ShareDenoms = []string{"s/foo", "s/bar", "s/toto"}
-)
+// ShareDenoms are the denom used for the shares in the simulation
+var ShareDenoms = []string{"s/foo", "s/bar", "s/toto"}
 
 // GetCoordSimAccount finds an account associated with a coordinator profile from simulation accounts
 func GetCoordSimAccount(
@@ -124,7 +123,7 @@ func GetSharesFromCampaign(r *rand.Rand, ctx sdk.Context, k keeper.Keeper, campI
 		if shareNb > remaining {
 			shareNb = remaining
 		}
-		shares = append(shares, sdk.NewCoin(share, sdk.NewInt(shareNb)))
+		shares = append(shares, sdk.NewCoin(share, sdkmath.NewInt(shareNb)))
 	}
 
 	// No shares can be distributed

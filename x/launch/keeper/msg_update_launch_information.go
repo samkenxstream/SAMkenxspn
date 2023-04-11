@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/tendermint/spn/x/launch/types"
 	profiletypes "github.com/tendermint/spn/x/profile/types"
@@ -15,7 +15,6 @@ func (k msgServer) UpdateLaunchInformation(
 	goCtx context.Context,
 	msg *types.MsgUpdateLaunchInformation,
 ) (*types.MsgUpdateLaunchInformationResponse, error) {
-
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	chain, found := k.GetChain(ctx, msg.LaunchID)
@@ -56,5 +55,4 @@ func (k msgServer) UpdateLaunchInformation(
 
 	k.SetChain(ctx, chain)
 	return &types.MsgUpdateLaunchInformationResponse{}, nil
-
 }

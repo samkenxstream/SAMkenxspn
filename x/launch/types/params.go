@@ -14,24 +14,28 @@ import (
 var (
 	// DefaultMinLaunchTime ...
 	// TODO: set back this value to the default one
-	// int64(time.Hour.Seconds() * 24)
-	DefaultMinLaunchTime = int64(5)
-	DefaultMaxLaunchTime = int64(time.Hour.Seconds() * 24 * 7)
+	// time.Hour * 24
+	DefaultMinLaunchTime = time.Hour * 5
+	DefaultMaxLaunchTime = time.Hour * 24 * 7
 
 	// DefaultRevertDelay is the delay after the launch time when it is possible to revert the launch of the chain
-	// Chain launch can be reverted on-chain when the actual chain launch failed (incorrect gentx, etc...)
+	// launch can be reverted on-chain when the actual chain launch failed (incorrect gentx, etc...)
 	// This delay must be small be big enough to ensure nodes had the time to bootstrap\
 	// This currently corresponds to 1 hour
-	DefaultRevertDelay = int64(60 * 60)
+	DefaultRevertDelay = time.Hour
 
-	DefaultChainCreationFee = sdk.Coins(nil) // EmptyCoins
+	DefaultFee = sdk.Coins(nil) // EmptyCoins
 
-	MaxParametrableLaunchTime  = int64(time.Hour.Seconds() * 24 * 31)
-	MaxParametrableRevertDelay = int64(time.Hour.Seconds() * 24)
+	MaxParametrableLaunchTime  = time.Hour * 24 * 31
+	MaxParametrableRevertDelay = time.Hour * 24
 
-	KeyLaunchTimeRange  = []byte("LaunchTimeRange")
-	KeyRevertDelay      = []byte("RevertDelay")
-	KeyChainCreationFee = []byte("ChainCreationFee")
+	DefaultMaxMetadataLength uint64 = 2000
+
+	KeyLaunchTimeRange   = []byte("LaunchTimeRange")
+	KeyRevertDelay       = []byte("RevertDelay")
+	KeyChainCreationFee  = []byte("ChainCreationFee")
+	KeyRequestFee        = []byte("RequestFee")
+	KeyMaxMetadataLength = []byte("MaxMetadataLength")
 )
 
 var _ paramtypes.ParamSet = (*Params)(nil)
@@ -42,7 +46,7 @@ func ParamKeyTable() paramtypes.KeyTable {
 }
 
 // NewLaunchTimeRange creates a new LaunchTimeRange instance
-func NewLaunchTimeRange(minLaunchTime, maxLaunchTime int64) LaunchTimeRange {
+func NewLaunchTimeRange(minLaunchTime, maxLaunchTime time.Duration) LaunchTimeRange {
 	return LaunchTimeRange{
 		MinLaunchTime: minLaunchTime,
 		MaxLaunchTime: maxLaunchTime,
@@ -50,11 +54,20 @@ func NewLaunchTimeRange(minLaunchTime, maxLaunchTime int64) LaunchTimeRange {
 }
 
 // NewParams creates a new Params instance
-func NewParams(minLaunchTime, maxLaunchTime, revertDelay int64, chainCreationFee sdk.Coins) Params {
+func NewParams(
+	minLaunchTime,
+	maxLaunchTime,
+	revertDelay time.Duration,
+	chainCreationFee,
+	requestFee sdk.Coins,
+	maxMetadataLength uint64,
+) Params {
 	return Params{
-		LaunchTimeRange:  NewLaunchTimeRange(minLaunchTime, maxLaunchTime),
-		RevertDelay:      revertDelay,
-		ChainCreationFee: chainCreationFee,
+		LaunchTimeRange:   NewLaunchTimeRange(minLaunchTime, maxLaunchTime),
+		RevertDelay:       revertDelay,
+		ChainCreationFee:  chainCreationFee,
+		RequestFee:        requestFee,
+		MaxMetadataLength: maxMetadataLength,
 	}
 }
 
@@ -64,7 +77,9 @@ func DefaultParams() Params {
 		DefaultMinLaunchTime,
 		DefaultMaxLaunchTime,
 		DefaultRevertDelay,
-		DefaultChainCreationFee,
+		DefaultFee,
+		DefaultFee,
+		DefaultMaxMetadataLength,
 	)
 }
 
@@ -73,7 +88,9 @@ func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 	return paramtypes.ParamSetPairs{
 		paramtypes.NewParamSetPair(KeyLaunchTimeRange, &p.LaunchTimeRange, validateLaunchTimeRange),
 		paramtypes.NewParamSetPair(KeyRevertDelay, &p.RevertDelay, validateRevertDelay),
-		paramtypes.NewParamSetPair(KeyChainCreationFee, &p.ChainCreationFee, validateChainCreationFee),
+		paramtypes.NewParamSetPair(KeyChainCreationFee, &p.ChainCreationFee, validateFee),
+		paramtypes.NewParamSetPair(KeyRequestFee, &p.RequestFee, validateFee),
+		paramtypes.NewParamSetPair(KeyMaxMetadataLength, &p.MaxMetadataLength, validateMaxMetadataLength),
 	}
 }
 
@@ -85,7 +102,13 @@ func (p Params) Validate() error {
 	if err := validateRevertDelay(p.RevertDelay); err != nil {
 		return err
 	}
-	return p.ChainCreationFee.Validate()
+	if err := validateMaxMetadataLength(p.MaxMetadataLength); err != nil {
+		return err
+	}
+	if err := p.ChainCreationFee.Validate(); err != nil {
+		return err
+	}
+	return p.RequestFee.Validate()
 }
 
 // String implements the Stringer interface.
@@ -117,7 +140,7 @@ func validateLaunchTimeRange(i interface{}) error {
 }
 
 func validateRevertDelay(i interface{}) error {
-	v, ok := i.(int64)
+	v, ok := i.(time.Duration)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
@@ -133,10 +156,17 @@ func validateRevertDelay(i interface{}) error {
 	return nil
 }
 
-func validateChainCreationFee(i interface{}) error {
+func validateFee(i interface{}) error {
 	v, ok := i.(sdk.Coins)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
 	return v.Validate()
+}
+
+func validateMaxMetadataLength(i interface{}) error {
+	if _, ok := i.(uint64); !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+	return nil
 }

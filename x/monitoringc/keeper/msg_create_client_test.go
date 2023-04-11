@@ -6,10 +6,10 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	ibctmtypes "github.com/cosmos/ibc-go/v2/modules/light-clients/07-tendermint/types"
+	ibctmtypes "github.com/cosmos/ibc-go/v6/modules/light-clients/07-tendermint/types"
+	ignterrors "github.com/ignite/modules/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	spnerrors "github.com/tendermint/spn/pkg/errors"
 	spntypes "github.com/tendermint/spn/pkg/types"
 	testkeeper "github.com/tendermint/spn/testutil/keeper"
 	"github.com/tendermint/spn/testutil/sample"
@@ -50,35 +50,39 @@ func Test_msgServer_CreateClient(t *testing.T) {
 		"",
 	))
 	require.NoError(t, err)
+	initialGenesis := launchtypes.NewDefaultInitialGenesis()
 	resCreateChain, err := ts.LaunchSrv.CreateChain(ctx, launchtypes.NewMsgCreateChain(
 		coordAddr,
 		"orbit-1",
 		sample.String(r, 10),
 		sample.String(r, 10),
-		"",
-		"",
+		initialGenesis,
 		false,
 		0,
+		sample.Coins(r),
 		sample.Metadata(r, 20),
 	))
 	require.NoError(t, err)
 	chainWithInvalidChainID := sample.Chain(r, resCreateChain.LaunchID+1, resCoord.CoordinatorID)
 	chainWithInvalidChainID.GenesisChainID = "invalid_chain_id"
 	tk.LaunchKeeper.SetChain(sdkCtx, chainWithInvalidChainID)
-	_, err = ts.LaunchSrv.RequestAddValidator(ctx, launchtypes.NewMsgRequestAddValidator(
+	_, err = ts.LaunchSrv.SendRequest(ctx, launchtypes.NewMsgSendRequest(
 		coordAddr,
 		resCreateChain.LaunchID,
-		sample.Address(r),
-		sample.Bytes(r, 100),
-		consPubKey,
-		selfDelegation,
-		sample.GenesisValidatorPeer(r),
+		launchtypes.NewGenesisValidator(
+			resCreateChain.LaunchID,
+			sample.Address(r),
+			sample.Bytes(r, 100),
+			consPubKey,
+			selfDelegation,
+			sample.GenesisValidatorPeer(r),
+		),
 	))
 	require.NoError(t, err)
 	_, err = ts.LaunchSrv.TriggerLaunch(ctx, launchtypes.NewMsgTriggerLaunch(
 		coordAddr,
 		resCreateChain.LaunchID,
-		launchtypes.DefaultMinLaunchTime,
+		sdkCtx.BlockTime().Add(launchtypes.DefaultMinLaunchTime),
 	))
 	require.NoError(t, err)
 
@@ -125,7 +129,7 @@ func Test_msgServer_CreateClient(t *testing.T) {
 				spntypes.DefaultUnbondingPeriod,
 				spntypes.DefaultRevisionHeight,
 			),
-			err: spnerrors.ErrCritical,
+			err: ignterrors.ErrCritical,
 		},
 		{
 			name: "chain doesn't exist",
@@ -149,7 +153,7 @@ func Test_msgServer_CreateClient(t *testing.T) {
 				spntypes.DefaultUnbondingPeriod,
 				spntypes.DefaultRevisionHeight,
 			),
-			err: spnerrors.ErrCritical,
+			err: ignterrors.ErrCritical,
 		},
 		{
 			name: "invalid validator set",

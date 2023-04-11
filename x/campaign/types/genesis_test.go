@@ -3,9 +3,8 @@ package types_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkmath "cosmossdk.io/math"
 	"github.com/stretchr/testify/require"
 
 	spntypes "github.com/tendermint/spn/pkg/types"
@@ -32,19 +31,19 @@ func TestGenesisState_Validate(t *testing.T) {
 	campaign2.CoordinatorID = 1
 
 	for _, tc := range []struct {
-		desc         string
+		name         string
 		genState     *types.GenesisState
 		errorMessage string
 	}{
 		{
-			desc:     "default is valid",
+			name:     "should allow validation of valid default genesis",
 			genState: types.DefaultGenesis(),
 		},
 		{
-			desc: "valid genesis state",
+			name: "should allow validation of valid genesis",
 			genState: &types.GenesisState{
 				// this line is used by starport scaffolding # types/genesis/validField
-				CampaignChainsList: []types.CampaignChains{
+				CampaignChains: []types.CampaignChains{
 					{
 						CampaignID: campaign1.CampaignID,
 					},
@@ -52,12 +51,12 @@ func TestGenesisState_Validate(t *testing.T) {
 						CampaignID: campaign2.CampaignID,
 					},
 				},
-				CampaignList: []types.Campaign{
+				Campaigns: []types.Campaign{
 					campaign1,
 					campaign2,
 				},
 				CampaignCounter: 2,
-				MainnetAccountList: []types.MainnetAccount{
+				MainnetAccounts: []types.MainnetAccount{
 					{
 						CampaignID: campaign1.CampaignID,
 						Address:    sample.Address(r),
@@ -69,26 +68,14 @@ func TestGenesisState_Validate(t *testing.T) {
 						Shares:     shares3,
 					},
 				},
-				MainnetVestingAccountList: []types.MainnetVestingAccount{
-					{
-						CampaignID:     campaign1.CampaignID,
-						Address:        sample.Address(r),
-						VestingOptions: *types.NewShareDelayedVesting(shares2, shares2, time.Now().Unix()),
-					},
-					{
-						CampaignID:     campaign2.CampaignID,
-						Address:        sample.Address(r),
-						VestingOptions: *types.NewShareDelayedVesting(shares4, shares4, time.Now().Unix()),
-					},
-				},
 				TotalShares: spntypes.TotalShareNumber,
 				Params:      types.DefaultParams(),
 			},
 		},
 		{
-			desc: "non existing campaign for mainnet vesting account",
+			name: "should prevent validation of genesis with non existing campaign for mainnet account",
 			genState: &types.GenesisState{
-				CampaignChainsList: []types.CampaignChains{
+				CampaignChains: []types.CampaignChains{
 					{
 						CampaignID: 0,
 					},
@@ -96,46 +83,12 @@ func TestGenesisState_Validate(t *testing.T) {
 						CampaignID: 1,
 					},
 				},
-				CampaignList: []types.Campaign{
+				Campaigns: []types.Campaign{
 					sample.Campaign(r, 0),
 					sample.Campaign(r, 1),
 				},
 				CampaignCounter: 2,
-				MainnetAccountList: []types.MainnetAccount{
-					sample.MainnetAccount(r, 0, sample.Address(r)),
-					sample.MainnetAccount(r, 1, sample.Address(r)),
-				},
-				MainnetVestingAccountList: []types.MainnetVestingAccount{
-					{
-						CampaignID: 33333,
-						Address:    "33333",
-					},
-					{
-						CampaignID: 9999,
-						Address:    "9999",
-					},
-				},
-				TotalShares: spntypes.TotalShareNumber,
-			},
-			errorMessage: "campaign id 33333 doesn't exist for mainnet vesting account 33333",
-		},
-		{
-			desc: "non existing campaign for mainnet account",
-			genState: &types.GenesisState{
-				CampaignChainsList: []types.CampaignChains{
-					{
-						CampaignID: 0,
-					},
-					{
-						CampaignID: 1,
-					},
-				},
-				CampaignList: []types.Campaign{
-					sample.Campaign(r, 0),
-					sample.Campaign(r, 1),
-				},
-				CampaignCounter: 2,
-				MainnetAccountList: []types.MainnetAccount{
+				MainnetAccounts: []types.MainnetAccount{
 					sample.MainnetAccount(r, 330, "330"),
 				},
 				TotalShares: spntypes.TotalShareNumber,
@@ -143,9 +96,9 @@ func TestGenesisState_Validate(t *testing.T) {
 			errorMessage: "campaign id 330 doesn't exist for mainnet account 330",
 		},
 		{
-			desc: "non existing campaign for chains",
+			name: "should prevent validation of genesis with non existing campaign for chains",
 			genState: &types.GenesisState{
-				CampaignChainsList: []types.CampaignChains{
+				CampaignChains: []types.CampaignChains{
 					{
 						CampaignID: 2,
 					},
@@ -153,7 +106,7 @@ func TestGenesisState_Validate(t *testing.T) {
 						CampaignID: 4,
 					},
 				},
-				CampaignList: []types.Campaign{
+				Campaigns: []types.Campaign{
 					sample.Campaign(r, 99),
 					sample.Campaign(r, 88),
 				},
@@ -163,13 +116,13 @@ func TestGenesisState_Validate(t *testing.T) {
 			errorMessage: "campaign id 2 doesn't exist for chains",
 		},
 		{
-			desc: "duplicated campaignChains",
+			name: "should prevent validation of genesis with duplicated campaignChains",
 			genState: &types.GenesisState{
-				CampaignList: []types.Campaign{
+				Campaigns: []types.Campaign{
 					sample.Campaign(r, 0),
 				},
 				CampaignCounter: 1,
-				CampaignChainsList: []types.CampaignChains{
+				CampaignChains: []types.CampaignChains{
 					{
 						CampaignID: 0,
 					},
@@ -182,30 +135,9 @@ func TestGenesisState_Validate(t *testing.T) {
 			errorMessage: "duplicated index for campaignChains",
 		},
 		{
-			desc: "duplicated mainnetVestingAccount",
+			name: "should prevent validation of genesis with duplicated campaign",
 			genState: &types.GenesisState{
-				CampaignList: []types.Campaign{
-					sample.Campaign(r, 0),
-				},
-				CampaignCounter: 1,
-				MainnetVestingAccountList: []types.MainnetVestingAccount{
-					{
-						CampaignID: 0,
-						Address:    "0",
-					},
-					{
-						CampaignID: 0,
-						Address:    "0",
-					},
-				},
-				TotalShares: spntypes.TotalShareNumber,
-			},
-			errorMessage: "duplicated index for mainnetVestingAccount",
-		},
-		{
-			desc: "duplicated campaign",
-			genState: &types.GenesisState{
-				CampaignList: []types.Campaign{
+				Campaigns: []types.Campaign{
 					sample.Campaign(r, 0),
 					sample.Campaign(r, 0),
 				},
@@ -215,9 +147,9 @@ func TestGenesisState_Validate(t *testing.T) {
 			errorMessage: "duplicated id for campaign",
 		},
 		{
-			desc: "invalid campaign count",
+			name: "should prevent validation of genesis with invalid campaign count",
 			genState: &types.GenesisState{
-				CampaignList: []types.Campaign{
+				Campaigns: []types.Campaign{
 					sample.Campaign(r, 1),
 				},
 				CampaignCounter: 0,
@@ -226,9 +158,9 @@ func TestGenesisState_Validate(t *testing.T) {
 			errorMessage: "campaign id should be lower or equal than the last id",
 		},
 		{
-			desc: "invalid campaign",
+			name: "should prevent validation of genesis with invalid campaign",
 			genState: &types.GenesisState{
-				CampaignList: []types.Campaign{
+				Campaigns: []types.Campaign{
 					types.NewCampaign(
 						0,
 						invalidCampaignName,
@@ -244,13 +176,13 @@ func TestGenesisState_Validate(t *testing.T) {
 			errorMessage: "invalid campaign 0: campaign name can only contain alphanumerical characters or hyphen",
 		},
 		{
-			desc: "duplicated mainnetAccount",
+			name: "should prevent validation of genesis with duplicated mainnetAccount",
 			genState: &types.GenesisState{
-				CampaignList: []types.Campaign{
+				Campaigns: []types.Campaign{
 					sample.Campaign(r, 0),
 				},
 				CampaignCounter: 1,
-				MainnetAccountList: []types.MainnetAccount{
+				MainnetAccounts: []types.MainnetAccount{
 					{
 						CampaignID: 0,
 						Address:    "0",
@@ -265,9 +197,9 @@ func TestGenesisState_Validate(t *testing.T) {
 			errorMessage: "duplicated index for mainnetAccount",
 		},
 		{
-			desc: "invalid allocations",
+			name: "should prevent validation of genesis with invalid allocations",
 			genState: &types.GenesisState{
-				CampaignList: []types.Campaign{
+				Campaigns: []types.Campaign{
 					{
 						CampaignID:         0,
 						CampaignName:       "test",
@@ -280,7 +212,7 @@ func TestGenesisState_Validate(t *testing.T) {
 					},
 				},
 				CampaignCounter: 1,
-				MainnetAccountList: []types.MainnetAccount{
+				MainnetAccounts: []types.MainnetAccount{
 					{
 						CampaignID: 0,
 						Address:    "0",
@@ -292,7 +224,7 @@ func TestGenesisState_Validate(t *testing.T) {
 		},
 		// this line is used by starport scaffolding # types/genesis/testcase
 	} {
-		t.Run(tc.desc, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			err := tc.genState.Validate()
 			if tc.errorMessage != "" {
 				require.Error(t, err)
@@ -302,12 +234,12 @@ func TestGenesisState_Validate(t *testing.T) {
 			require.NoError(t, err)
 
 			campaignIDMap := make(map[uint64]types.Shares)
-			for _, elem := range tc.genState.CampaignList {
+			for _, elem := range tc.genState.Campaigns {
 				campaignIDMap[elem.CampaignID] = elem.AllocatedShares
 			}
 			shares := make(map[uint64]types.Shares)
 
-			for _, acc := range tc.genState.MainnetAccountList {
+			for _, acc := range tc.genState.MainnetAccounts {
 				// check if the campaign exists for mainnet accounts
 				_, ok := campaignIDMap[acc.CampaignID]
 				require.True(t, ok)
@@ -319,24 +251,6 @@ func TestGenesisState_Validate(t *testing.T) {
 				shares[acc.CampaignID] = types.IncreaseShares(
 					shares[acc.CampaignID],
 					acc.Shares,
-				)
-			}
-
-			for _, acc := range tc.genState.MainnetVestingAccountList {
-				// check if the campaign exists for mainnet accounts
-				_, ok := campaignIDMap[acc.CampaignID]
-				require.True(t, ok)
-
-				// sum mainnet account shares
-				if _, ok := shares[acc.CampaignID]; !ok {
-					shares[acc.CampaignID] = types.EmptyShares()
-				}
-				totalShares, err := acc.GetTotalShares()
-				require.NoError(t, err)
-
-				shares[acc.CampaignID] = types.IncreaseShares(
-					shares[acc.CampaignID],
-					totalShares,
 				)
 			}
 
@@ -353,29 +267,38 @@ func TestGenesisState_Validate(t *testing.T) {
 
 func TestGenesisState_ValidateParams(t *testing.T) {
 	for _, tc := range []struct {
-		desc          string
-		genState      types.GenesisState
-		shouldBeValid bool
+		name     string
+		genState types.GenesisState
+		valid    bool
 	}{
 		{
-			desc: "max total supply below min total supply",
+			name: "should prevent validation of genesis with max total supply below min total supply",
 			genState: types.GenesisState{
-				Params: types.NewParams(types.DefaultMinTotalSupply, types.DefaultMinTotalSupply.Sub(sdk.OneInt()), types.DefaultCampaignCreationFee),
+				Params: types.NewParams(
+					types.DefaultMinTotalSupply,
+					types.DefaultMinTotalSupply.Sub(sdkmath.OneInt()),
+					types.DefaultCampaignCreationFee,
+					types.DefaultMaxMetadataLength,
+				),
 			},
-			shouldBeValid: false,
+			valid: false,
 		},
 		{
-			desc: "valid parameters",
+			name: "should prevent validation of genesis with valid parameters",
 			genState: types.GenesisState{
-				Params: types.NewParams(types.DefaultMinTotalSupply, types.DefaultMinTotalSupply.Add(sdk.OneInt()), types.DefaultCampaignCreationFee),
+				Params: types.NewParams(
+					types.DefaultMinTotalSupply,
+					types.DefaultMinTotalSupply.Add(sdkmath.OneInt()),
+					types.DefaultCampaignCreationFee,
+					types.DefaultMaxMetadataLength,
+				),
 			},
-			shouldBeValid: true,
+			valid: true,
 		},
 	} {
-		tc := tc
-		t.Run(tc.desc, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			err := tc.genState.Validate()
-			if tc.shouldBeValid {
+			if tc.valid {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)

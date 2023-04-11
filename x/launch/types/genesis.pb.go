@@ -25,15 +25,15 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // GenesisState defines the launch module's genesis state.
 type GenesisState struct {
-	// this line is used by starport scaffolding # genesis/proto/state
-	ChainList            []Chain            `protobuf:"bytes,1,rep,name=chainList,proto3" json:"chainList"`
-	ChainCounter         uint64             `protobuf:"varint,2,opt,name=chainCounter,proto3" json:"chainCounter,omitempty"`
-	GenesisAccountList   []GenesisAccount   `protobuf:"bytes,3,rep,name=genesisAccountList,proto3" json:"genesisAccountList"`
-	VestingAccountList   []VestingAccount   `protobuf:"bytes,4,rep,name=vestingAccountList,proto3" json:"vestingAccountList"`
-	GenesisValidatorList []GenesisValidator `protobuf:"bytes,5,rep,name=genesisValidatorList,proto3" json:"genesisValidatorList"`
-	RequestList          []Request          `protobuf:"bytes,6,rep,name=requestList,proto3" json:"requestList"`
-	RequestCounterList   []RequestCounter   `protobuf:"bytes,7,rep,name=requestCounterList,proto3" json:"requestCounterList"`
-	Params               Params             `protobuf:"bytes,8,opt,name=params,proto3" json:"params"`
+	Chains            []Chain            `protobuf:"bytes,1,rep,name=chains,proto3" json:"chains"`
+	ChainCounter      uint64             `protobuf:"varint,2,opt,name=chainCounter,proto3" json:"chainCounter,omitempty"`
+	GenesisAccounts   []GenesisAccount   `protobuf:"bytes,3,rep,name=genesisAccounts,proto3" json:"genesisAccounts"`
+	VestingAccounts   []VestingAccount   `protobuf:"bytes,4,rep,name=vestingAccounts,proto3" json:"vestingAccounts"`
+	GenesisValidators []GenesisValidator `protobuf:"bytes,5,rep,name=genesisValidators,proto3" json:"genesisValidators"`
+	ParamChanges      []ParamChange      `protobuf:"bytes,6,rep,name=paramChanges,proto3" json:"paramChanges"`
+	Requests          []Request          `protobuf:"bytes,7,rep,name=requests,proto3" json:"requests"`
+	RequestCounters   []RequestCounter   `protobuf:"bytes,8,rep,name=requestCounters,proto3" json:"requestCounters"`
+	Params            Params             `protobuf:"bytes,9,opt,name=params,proto3" json:"params"`
 }
 
 func (m *GenesisState) Reset()         { *m = GenesisState{} }
@@ -69,9 +69,9 @@ func (m *GenesisState) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GenesisState proto.InternalMessageInfo
 
-func (m *GenesisState) GetChainList() []Chain {
+func (m *GenesisState) GetChains() []Chain {
 	if m != nil {
-		return m.ChainList
+		return m.Chains
 	}
 	return nil
 }
@@ -83,37 +83,44 @@ func (m *GenesisState) GetChainCounter() uint64 {
 	return 0
 }
 
-func (m *GenesisState) GetGenesisAccountList() []GenesisAccount {
+func (m *GenesisState) GetGenesisAccounts() []GenesisAccount {
 	if m != nil {
-		return m.GenesisAccountList
+		return m.GenesisAccounts
 	}
 	return nil
 }
 
-func (m *GenesisState) GetVestingAccountList() []VestingAccount {
+func (m *GenesisState) GetVestingAccounts() []VestingAccount {
 	if m != nil {
-		return m.VestingAccountList
+		return m.VestingAccounts
 	}
 	return nil
 }
 
-func (m *GenesisState) GetGenesisValidatorList() []GenesisValidator {
+func (m *GenesisState) GetGenesisValidators() []GenesisValidator {
 	if m != nil {
-		return m.GenesisValidatorList
+		return m.GenesisValidators
 	}
 	return nil
 }
 
-func (m *GenesisState) GetRequestList() []Request {
+func (m *GenesisState) GetParamChanges() []ParamChange {
 	if m != nil {
-		return m.RequestList
+		return m.ParamChanges
 	}
 	return nil
 }
 
-func (m *GenesisState) GetRequestCounterList() []RequestCounter {
+func (m *GenesisState) GetRequests() []Request {
 	if m != nil {
-		return m.RequestCounterList
+		return m.Requests
+	}
+	return nil
+}
+
+func (m *GenesisState) GetRequestCounters() []RequestCounter {
+	if m != nil {
+		return m.RequestCounters
 	}
 	return nil
 }
@@ -185,34 +192,35 @@ func init() {
 func init() { proto.RegisterFile("launch/genesis.proto", fileDescriptor_02cd66d27edc51cd) }
 
 var fileDescriptor_02cd66d27edc51cd = []byte{
-	// 429 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x93, 0x4d, 0x8b, 0xda, 0x40,
-	0x18, 0xc7, 0x93, 0x9a, 0xaa, 0x1d, 0xa5, 0x87, 0xa9, 0x85, 0x20, 0x76, 0x2a, 0x42, 0x69, 0x4e,
-	0x09, 0xd8, 0x63, 0x2f, 0xad, 0x16, 0xa5, 0xd0, 0x43, 0xc9, 0x82, 0x87, 0xdd, 0xc3, 0x32, 0xc6,
-	0x21, 0x06, 0x74, 0x92, 0xcd, 0x4c, 0x64, 0xf7, 0x5b, 0xec, 0xc7, 0xf2, 0xe8, 0x71, 0x4f, 0xcb,
-	0xa2, 0x1f, 0x61, 0xbf, 0xc0, 0x92, 0xc9, 0x13, 0x35, 0xbe, 0xdd, 0xf2, 0xbc, 0xfc, 0x7f, 0xff,
-	0x67, 0x1e, 0x9e, 0xa0, 0xc6, 0x8c, 0x26, 0xdc, 0x9b, 0x3a, 0x3e, 0xe3, 0x4c, 0x04, 0xc2, 0x8e,
-	0xe2, 0x50, 0x86, 0xf8, 0xb3, 0x64, 0x7c, 0xc2, 0xe2, 0x79, 0xc0, 0xa5, 0x2d, 0x22, 0x6e, 0x67,
-	0x4d, 0xcd, 0x86, 0x1f, 0xfa, 0xa1, 0xea, 0x70, 0xd2, 0xaf, 0xac, 0xb9, 0x99, 0x23, 0x62, 0x76,
-	0x97, 0x30, 0x21, 0x21, 0xdb, 0x82, 0xec, 0x82, 0x09, 0x19, 0x70, 0xff, 0x96, 0x7a, 0x5e, 0x98,
-	0xf0, 0xc3, 0x2a, 0xd8, 0x1e, 0x54, 0xc9, 0x41, 0x75, 0x41, 0x67, 0xc1, 0x84, 0xca, 0x30, 0x86,
-	0x3a, 0x86, 0xba, 0x37, 0xa5, 0x01, 0x87, 0xdc, 0x27, 0xc8, 0x45, 0x34, 0xa6, 0x73, 0x78, 0x47,
-	0xe7, 0xd5, 0x40, 0xf5, 0x61, 0x06, 0xb9, 0x92, 0x54, 0x32, 0xfc, 0x0b, 0x7d, 0x50, 0xa2, 0x7f,
-	0x81, 0x90, 0xa6, 0xde, 0x2e, 0x59, 0xb5, 0x6e, 0xcb, 0x3e, 0xf9, 0x58, 0xbb, 0x9f, 0xf6, 0xf5,
-	0x8c, 0xe5, 0xf3, 0x57, 0xcd, 0xdd, 0x89, 0x70, 0x07, 0xd5, 0x55, 0xd0, 0x4f, 0xe7, 0x65, 0xb1,
-	0xf9, 0xae, 0xad, 0x5b, 0x86, 0x5b, 0xc8, 0xe1, 0x1b, 0x84, 0x61, 0xf4, 0xdf, 0xd9, 0xbb, 0x94,
-	0x5d, 0x49, 0xd9, 0x7d, 0x3b, 0x63, 0x37, 0x2c, 0x08, 0xc0, 0xf7, 0x04, 0x26, 0x85, 0xc3, 0x4e,
-	0xf7, 0xe1, 0xc6, 0x45, 0xf8, 0xa8, 0x20, 0xc8, 0xe1, 0xc7, 0x18, 0x4c, 0x51, 0x03, 0x2c, 0x47,
-	0xf9, 0xce, 0x15, 0xfe, 0xbd, 0xc2, 0x7f, 0xbf, 0x3c, 0xfb, 0x56, 0x02, 0x06, 0x27, 0x51, 0x78,
-	0x80, 0x6a, 0x70, 0x29, 0x8a, 0x5c, 0x56, 0x64, 0x72, 0x86, 0xec, 0x66, 0x9d, 0x00, 0xdc, 0x17,
-	0xa6, 0x7b, 0x80, 0x10, 0xd6, 0xae, 0x70, 0x95, 0x8b, 0x7b, 0x70, 0x0b, 0x82, 0x7c, 0x0f, 0xc7,
-	0x18, 0xfc, 0x13, 0x95, 0xb3, 0x43, 0x32, 0xab, 0x6d, 0xdd, 0xaa, 0x75, 0xbf, 0x9c, 0x01, 0xfe,
-	0x57, 0x4d, 0x00, 0x02, 0x49, 0x67, 0x80, 0x3e, 0x16, 0x8d, 0x70, 0x13, 0x55, 0x33, 0xc1, 0xdf,
-	0x3f, 0xa6, 0xae, 0x0e, 0x66, 0x1b, 0x63, 0x13, 0x55, 0xbc, 0xc2, 0x2d, 0xe5, 0x61, 0xaf, 0xb7,
-	0x5c, 0x13, 0x7d, 0xb5, 0x26, 0xfa, 0xcb, 0x9a, 0xe8, 0x8f, 0x1b, 0xa2, 0xad, 0x36, 0x44, 0x7b,
-	0xda, 0x10, 0xed, 0xda, 0xf2, 0x03, 0x39, 0x4d, 0xc6, 0xb6, 0x17, 0xce, 0x9d, 0xdd, 0x60, 0x8e,
-	0x88, 0xb8, 0x73, 0xef, 0xc0, 0x8f, 0x20, 0x1f, 0x22, 0x26, 0xc6, 0x65, 0xf5, 0x23, 0xfc, 0x78,
-	0x0b, 0x00, 0x00, 0xff, 0xff, 0x00, 0x8a, 0x86, 0x19, 0xe8, 0x03, 0x00, 0x00,
+	// 448 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x93, 0xcd, 0x8e, 0xd3, 0x30,
+	0x10, 0xc7, 0x13, 0xb6, 0x9b, 0x2d, 0xde, 0x0a, 0x84, 0x59, 0x24, 0xab, 0x5a, 0x4c, 0x15, 0x09,
+	0x91, 0x53, 0x22, 0x2d, 0x37, 0xb8, 0x40, 0x8b, 0x58, 0x21, 0x71, 0x40, 0x41, 0xec, 0x01, 0x0e,
+	0xc8, 0x4d, 0xad, 0x24, 0x52, 0xeb, 0x84, 0xd8, 0xa9, 0xe0, 0x2d, 0x78, 0x01, 0xde, 0xa7, 0xc7,
+	0x1e, 0x39, 0x21, 0xd4, 0xbe, 0x08, 0x8a, 0x3d, 0x49, 0x95, 0xb0, 0xcd, 0xcd, 0x9e, 0xf9, 0xcf,
+	0x6f, 0x3e, 0x3c, 0x46, 0x17, 0x4b, 0x56, 0x8a, 0x28, 0x09, 0x62, 0x2e, 0xb8, 0x4c, 0xa5, 0x9f,
+	0x17, 0x99, 0xca, 0xf0, 0x23, 0xc5, 0xc5, 0x82, 0x17, 0xab, 0x54, 0x28, 0x5f, 0xe6, 0xc2, 0x37,
+	0xa2, 0xf1, 0x45, 0x9c, 0xc5, 0x99, 0x56, 0x04, 0xd5, 0xc9, 0x88, 0xc7, 0x35, 0xa2, 0xe0, 0xdf,
+	0x4a, 0x2e, 0x15, 0x58, 0x2f, 0xc1, 0xba, 0xe6, 0x52, 0xa5, 0x22, 0xfe, 0xca, 0xa2, 0x28, 0x2b,
+	0x45, 0xd7, 0x0b, 0x69, 0x3b, 0x5e, 0xda, 0xf1, 0xae, 0xd9, 0x32, 0x5d, 0x30, 0x95, 0x15, 0xe0,
+	0xc7, 0xe0, 0x8f, 0x12, 0x96, 0x0a, 0xb0, 0x3d, 0x04, 0x5b, 0xce, 0x0a, 0xb6, 0x82, 0x3e, 0xdc,
+	0x5f, 0xa7, 0x68, 0x74, 0x6d, 0x20, 0x1f, 0x15, 0x53, 0x1c, 0xbf, 0x40, 0x8e, 0x0e, 0x92, 0xc4,
+	0x9e, 0x9c, 0x78, 0xe7, 0x57, 0x97, 0xfe, 0xad, 0x9d, 0xfa, 0xb3, 0x4a, 0x34, 0x1d, 0x6c, 0xfe,
+	0x3c, 0xb1, 0x42, 0x88, 0xc0, 0x2e, 0x1a, 0xe9, 0xd3, 0xac, 0xaa, 0x94, 0x17, 0xe4, 0xce, 0xc4,
+	0xf6, 0x06, 0x61, 0xcb, 0x86, 0x3f, 0xa1, 0xfb, 0x50, 0xf4, 0x6b, 0xd3, 0x91, 0x24, 0x27, 0x3a,
+	0xd1, 0xd3, 0x23, 0x89, 0xae, 0x5b, 0x6a, 0xc8, 0xd8, 0x65, 0x54, 0x58, 0x98, 0x63, 0x83, 0x1d,
+	0xf4, 0x62, 0x6f, 0x5a, 0xea, 0x1a, 0xdb, 0x61, 0xe0, 0x2f, 0xe8, 0x01, 0x64, 0xba, 0xa9, 0x27,
+	0x2c, 0xc9, 0xa9, 0x06, 0x3f, 0xeb, 0xaf, 0xb7, 0xd1, 0x03, 0xfa, 0x7f, 0x0e, 0x7e, 0x8f, 0x46,
+	0xfa, 0x2d, 0x66, 0x09, 0x13, 0x31, 0x97, 0xc4, 0xd1, 0x5c, 0xf7, 0x08, 0xf7, 0xc3, 0x41, 0x0a,
+	0xc8, 0x56, 0x34, 0x7e, 0x85, 0x86, 0xb0, 0x5f, 0x92, 0x9c, 0x69, 0x12, 0x3d, 0x42, 0x0a, 0x8d,
+	0x0c, 0x28, 0x4d, 0x54, 0x35, 0x43, 0x38, 0xc3, 0x63, 0x49, 0x32, 0xec, 0x9d, 0x61, 0xd8, 0x52,
+	0xd7, 0x33, 0xec, 0x30, 0xf0, 0x4b, 0xe4, 0x98, 0x95, 0x23, 0x77, 0x27, 0xb6, 0x77, 0x7e, 0xf5,
+	0xb8, 0xaf, 0x41, 0x59, 0xaf, 0x94, 0x09, 0x71, 0xdf, 0xa2, 0x7b, 0xed, 0x2c, 0x78, 0x8c, 0x86,
+	0x26, 0xe0, 0xdd, 0x1b, 0x62, 0xeb, 0x05, 0x6b, 0xee, 0x98, 0xa0, 0xb3, 0xa8, 0xb5, 0x7b, 0xf5,
+	0x75, 0x3a, 0xdd, 0xec, 0xa8, 0xbd, 0xdd, 0x51, 0xfb, 0xef, 0x8e, 0xda, 0x3f, 0xf7, 0xd4, 0xda,
+	0xee, 0xa9, 0xf5, 0x7b, 0x4f, 0xad, 0xcf, 0x5e, 0x9c, 0xaa, 0xa4, 0x9c, 0xfb, 0x51, 0xb6, 0x0a,
+	0x0e, 0x85, 0x05, 0x32, 0x17, 0xc1, 0xf7, 0x00, 0xbe, 0x8c, 0xfa, 0x91, 0x73, 0x39, 0x77, 0xf4,
+	0x97, 0x79, 0xfe, 0x2f, 0x00, 0x00, 0xff, 0xff, 0x68, 0x0b, 0x06, 0x8e, 0x12, 0x04, 0x00, 0x00,
 }
 
 func (m *GenesisState) Marshal() (dAtA []byte, err error) {
@@ -244,11 +252,25 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintGenesis(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x42
-	if len(m.RequestCounterList) > 0 {
-		for iNdEx := len(m.RequestCounterList) - 1; iNdEx >= 0; iNdEx-- {
+	dAtA[i] = 0x4a
+	if len(m.RequestCounters) > 0 {
+		for iNdEx := len(m.RequestCounters) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.RequestCounterList[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.RequestCounters[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x42
+		}
+	}
+	if len(m.Requests) > 0 {
+		for iNdEx := len(m.Requests) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Requests[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -259,10 +281,10 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0x3a
 		}
 	}
-	if len(m.RequestList) > 0 {
-		for iNdEx := len(m.RequestList) - 1; iNdEx >= 0; iNdEx-- {
+	if len(m.ParamChanges) > 0 {
+		for iNdEx := len(m.ParamChanges) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.RequestList[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.ParamChanges[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -273,10 +295,10 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0x32
 		}
 	}
-	if len(m.GenesisValidatorList) > 0 {
-		for iNdEx := len(m.GenesisValidatorList) - 1; iNdEx >= 0; iNdEx-- {
+	if len(m.GenesisValidators) > 0 {
+		for iNdEx := len(m.GenesisValidators) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.GenesisValidatorList[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.GenesisValidators[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -287,10 +309,10 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0x2a
 		}
 	}
-	if len(m.VestingAccountList) > 0 {
-		for iNdEx := len(m.VestingAccountList) - 1; iNdEx >= 0; iNdEx-- {
+	if len(m.VestingAccounts) > 0 {
+		for iNdEx := len(m.VestingAccounts) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.VestingAccountList[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.VestingAccounts[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -301,10 +323,10 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0x22
 		}
 	}
-	if len(m.GenesisAccountList) > 0 {
-		for iNdEx := len(m.GenesisAccountList) - 1; iNdEx >= 0; iNdEx-- {
+	if len(m.GenesisAccounts) > 0 {
+		for iNdEx := len(m.GenesisAccounts) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.GenesisAccountList[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.GenesisAccounts[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -320,10 +342,10 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x10
 	}
-	if len(m.ChainList) > 0 {
-		for iNdEx := len(m.ChainList) - 1; iNdEx >= 0; iNdEx-- {
+	if len(m.Chains) > 0 {
+		for iNdEx := len(m.Chains) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.ChainList[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.Chains[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -387,8 +409,8 @@ func (m *GenesisState) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.ChainList) > 0 {
-		for _, e := range m.ChainList {
+	if len(m.Chains) > 0 {
+		for _, e := range m.Chains {
 			l = e.Size()
 			n += 1 + l + sovGenesis(uint64(l))
 		}
@@ -396,32 +418,38 @@ func (m *GenesisState) Size() (n int) {
 	if m.ChainCounter != 0 {
 		n += 1 + sovGenesis(uint64(m.ChainCounter))
 	}
-	if len(m.GenesisAccountList) > 0 {
-		for _, e := range m.GenesisAccountList {
+	if len(m.GenesisAccounts) > 0 {
+		for _, e := range m.GenesisAccounts {
 			l = e.Size()
 			n += 1 + l + sovGenesis(uint64(l))
 		}
 	}
-	if len(m.VestingAccountList) > 0 {
-		for _, e := range m.VestingAccountList {
+	if len(m.VestingAccounts) > 0 {
+		for _, e := range m.VestingAccounts {
 			l = e.Size()
 			n += 1 + l + sovGenesis(uint64(l))
 		}
 	}
-	if len(m.GenesisValidatorList) > 0 {
-		for _, e := range m.GenesisValidatorList {
+	if len(m.GenesisValidators) > 0 {
+		for _, e := range m.GenesisValidators {
 			l = e.Size()
 			n += 1 + l + sovGenesis(uint64(l))
 		}
 	}
-	if len(m.RequestList) > 0 {
-		for _, e := range m.RequestList {
+	if len(m.ParamChanges) > 0 {
+		for _, e := range m.ParamChanges {
 			l = e.Size()
 			n += 1 + l + sovGenesis(uint64(l))
 		}
 	}
-	if len(m.RequestCounterList) > 0 {
-		for _, e := range m.RequestCounterList {
+	if len(m.Requests) > 0 {
+		for _, e := range m.Requests {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
+	}
+	if len(m.RequestCounters) > 0 {
+		for _, e := range m.RequestCounters {
 			l = e.Size()
 			n += 1 + l + sovGenesis(uint64(l))
 		}
@@ -483,7 +511,7 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ChainList", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Chains", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -510,8 +538,8 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ChainList = append(m.ChainList, Chain{})
-			if err := m.ChainList[len(m.ChainList)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			m.Chains = append(m.Chains, Chain{})
+			if err := m.Chains[len(m.Chains)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -536,7 +564,7 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 			}
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GenesisAccountList", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GenesisAccounts", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -563,14 +591,14 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.GenesisAccountList = append(m.GenesisAccountList, GenesisAccount{})
-			if err := m.GenesisAccountList[len(m.GenesisAccountList)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			m.GenesisAccounts = append(m.GenesisAccounts, GenesisAccount{})
+			if err := m.GenesisAccounts[len(m.GenesisAccounts)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VestingAccountList", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field VestingAccounts", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -597,14 +625,14 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.VestingAccountList = append(m.VestingAccountList, VestingAccount{})
-			if err := m.VestingAccountList[len(m.VestingAccountList)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			m.VestingAccounts = append(m.VestingAccounts, VestingAccount{})
+			if err := m.VestingAccounts[len(m.VestingAccounts)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GenesisValidatorList", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GenesisValidators", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -631,14 +659,14 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.GenesisValidatorList = append(m.GenesisValidatorList, GenesisValidator{})
-			if err := m.GenesisValidatorList[len(m.GenesisValidatorList)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			m.GenesisValidators = append(m.GenesisValidators, GenesisValidator{})
+			if err := m.GenesisValidators[len(m.GenesisValidators)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RequestList", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ParamChanges", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -665,14 +693,14 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RequestList = append(m.RequestList, Request{})
-			if err := m.RequestList[len(m.RequestList)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			m.ParamChanges = append(m.ParamChanges, ParamChange{})
+			if err := m.ParamChanges[len(m.ParamChanges)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RequestCounterList", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Requests", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -699,12 +727,46 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RequestCounterList = append(m.RequestCounterList, RequestCounter{})
-			if err := m.RequestCounterList[len(m.RequestCounterList)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			m.Requests = append(m.Requests, Request{})
+			if err := m.Requests[len(m.Requests)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequestCounters", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RequestCounters = append(m.RequestCounters, RequestCounter{})
+			if err := m.RequestCounters[len(m.RequestCounters)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Params", wireType)
 			}

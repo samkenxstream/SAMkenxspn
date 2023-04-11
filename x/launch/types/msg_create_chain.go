@@ -1,11 +1,11 @@
 package types
 
 import (
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/tendermint/spn/pkg/chainid"
-	spntypes "github.com/tendermint/spn/pkg/types"
+	profile "github.com/tendermint/spn/x/profile/types"
 )
 
 const TypeMsgCreateChain = "create_chain"
@@ -16,11 +16,11 @@ func NewMsgCreateChain(
 	coordinator,
 	genesisChainID,
 	sourceURL,
-	sourceHash,
-	genesisURL,
-	genesisHash string,
+	sourceHash string,
+	initialGenesis InitialGenesis,
 	hasCampaign bool,
 	campaignID uint64,
+	accountBalance sdk.Coins,
 	metadata []byte,
 ) *MsgCreateChain {
 	return &MsgCreateChain{
@@ -28,10 +28,10 @@ func NewMsgCreateChain(
 		GenesisChainID: genesisChainID,
 		SourceURL:      sourceURL,
 		SourceHash:     sourceHash,
-		GenesisURL:     genesisURL,
-		GenesisHash:    genesisHash,
+		InitialGenesis: initialGenesis,
 		HasCampaign:    hasCampaign,
 		CampaignID:     campaignID,
+		AccountBalance: accountBalance,
 		Metadata:       metadata,
 	}
 }
@@ -60,22 +60,20 @@ func (msg *MsgCreateChain) GetSignBytes() []byte {
 func (msg *MsgCreateChain) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Coordinator)
 	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid coordinator address (%s)", err)
+		return sdkerrors.Wrap(profile.ErrInvalidCoordAddress, err.Error())
 	}
 
 	if _, _, err := chainid.ParseGenesisChainID(msg.GenesisChainID); err != nil {
 		return sdkerrors.Wrapf(ErrInvalidGenesisChainID, err.Error())
 	}
 
-	// If a genesis URL is provided, the hash must be sha256, which is 32 bytes
-	if msg.GenesisURL != "" && len(msg.GenesisHash) != HashLength {
-		return sdkerrors.Wrap(ErrInvalidInitialGenesis, "hash of custom genesis must be sha256")
+	if err = msg.InitialGenesis.Validate(); err != nil {
+		return sdkerrors.Wrap(ErrInvalidInitialGenesis, err.Error())
 	}
 
-	// TODO parameterize
-	if len(msg.Metadata) > spntypes.MaxMetadataLength {
-		return sdkerrors.Wrapf(ErrInvalidMetadataLength, "data length %d is greater than maximum %d",
-			len(msg.Metadata), spntypes.MaxMetadataLength)
+	// Coins must be valid
+	if !msg.AccountBalance.IsValid() {
+		return sdkerrors.Wrap(ErrInvalidCoins, "default account balance sdk.Coins is not valid")
 	}
 
 	return nil

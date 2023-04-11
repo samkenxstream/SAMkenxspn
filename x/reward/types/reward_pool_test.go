@@ -3,6 +3,7 @@ package types_test
 import (
 	"testing"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
@@ -27,7 +28,19 @@ func TestRewardPool_Validate(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name: "invalid provider address",
+			name: "should validate valid reward pool",
+			rewardPool: types.RewardPool{
+				LaunchID:            1,
+				Provider:            sample.Address(r),
+				InitialCoins:        validInitialCoins,
+				RemainingCoins:      validRemainingCoins,
+				LastRewardHeight:    50,
+				CurrentRewardHeight: 100,
+				Closed:              false,
+			},
+		},
+		{
+			name: "should prevent with invalid provider address",
 			rewardPool: types.RewardPool{
 				LaunchID:            1,
 				Provider:            "invalid address",
@@ -40,7 +53,7 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "empty initial coins",
+			name: "should prevent with empty initial coins",
 			rewardPool: types.RewardPool{
 				LaunchID:            1,
 				Provider:            sample.Address(r),
@@ -51,7 +64,7 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "empty remaining coins",
+			name: "should prevent with empty remaining coins",
 			rewardPool: types.RewardPool{
 				LaunchID:            1,
 				Provider:            sample.Address(r),
@@ -63,13 +76,13 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid initial coins",
+			name: "should prevent with invalid initial coins",
 			rewardPool: types.RewardPool{
 				LaunchID: 1,
 				Provider: sample.Address(r),
 				InitialCoins: sdk.Coins{sdk.Coin{
 					Denom:  "invalid denom",
-					Amount: sdk.ZeroInt(),
+					Amount: sdkmath.ZeroInt(),
 				}},
 				RemainingCoins:      sample.CoinsWithRange(r, 0, remainingCoinMax),
 				LastRewardHeight:    50,
@@ -79,14 +92,14 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid current coins",
+			name: "should prevent with invalid current coins",
 			rewardPool: types.RewardPool{
 				LaunchID:     1,
 				Provider:     sample.Address(r),
 				InitialCoins: sample.CoinsWithRange(r, remainingCoinMax, initialCoinMax),
 				RemainingCoins: sdk.Coins{sdk.Coin{
 					Denom:  "invalid denom",
-					Amount: sdk.ZeroInt(),
+					Amount: sdkmath.ZeroInt(),
 				}},
 				LastRewardHeight:    50,
 				CurrentRewardHeight: 100,
@@ -95,17 +108,17 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "current coins greater than initial coins",
+			name: "should prevent with current coins greater than initial coins",
 			rewardPool: types.RewardPool{
 				LaunchID: 1,
 				Provider: sample.Address(r),
 				InitialCoins: sdk.Coins{sdk.Coin{
 					Denom:  "test",
-					Amount: sdk.NewInt(5),
+					Amount: sdkmath.NewInt(5),
 				}},
 				RemainingCoins: sdk.Coins{sdk.Coin{
 					Denom:  "test",
-					Amount: sdk.NewInt(6),
+					Amount: sdkmath.NewInt(6),
 				}},
 				LastRewardHeight:    50,
 				CurrentRewardHeight: 100,
@@ -114,21 +127,23 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "coins are not the same length",
+			name: "should prevent with coins are not the same length",
 			rewardPool: types.RewardPool{
 				LaunchID: 1,
 				Provider: sample.Address(r),
-				InitialCoins: sdk.Coins{sdk.Coin{
-					Denom:  "test",
-					Amount: sdk.NewInt(5),
-				},
+				InitialCoins: sdk.Coins{
+					sdk.Coin{
+						Denom:  "test",
+						Amount: sdkmath.NewInt(5),
+					},
 					sdk.Coin{
 						Denom:  "test1",
-						Amount: sdk.NewInt(5),
-					}},
+						Amount: sdkmath.NewInt(5),
+					},
+				},
 				RemainingCoins: sdk.Coins{sdk.Coin{
 					Denom:  "test",
-					Amount: sdk.NewInt(1),
+					Amount: sdkmath.NewInt(1),
 				}},
 				LastRewardHeight:    50,
 				CurrentRewardHeight: 100,
@@ -137,17 +152,17 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "coins are not of same denom set",
+			name: "should prevent with coins are not of same denom set",
 			rewardPool: types.RewardPool{
 				LaunchID: 1,
 				Provider: sample.Address(r),
 				InitialCoins: sdk.Coins{sdk.Coin{
 					Denom:  "test2",
-					Amount: sdk.NewInt(5),
+					Amount: sdkmath.NewInt(5),
 				}},
 				RemainingCoins: sdk.Coins{sdk.Coin{
 					Denom:  "test1",
-					Amount: sdk.NewInt(1),
+					Amount: sdkmath.NewInt(1),
 				}},
 				LastRewardHeight:    50,
 				CurrentRewardHeight: 100,
@@ -156,7 +171,7 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "current reward height lower than last reward height",
+			name: "should prevent with current reward height lower than last reward height",
 			rewardPool: types.RewardPool{
 				LaunchID:            1,
 				Provider:            sample.Address(r),
@@ -169,7 +184,7 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "current reward height is negative",
+			name: "should prevent with current reward height is negative",
 			rewardPool: types.RewardPool{
 				LaunchID:            1,
 				Provider:            sample.Address(r),
@@ -182,7 +197,7 @@ func TestRewardPool_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "last reward height is negative",
+			name: "should prevent with last reward height is negative",
 			rewardPool: types.RewardPool{
 				LaunchID:            1,
 				Provider:            sample.Address(r),
@@ -193,18 +208,6 @@ func TestRewardPool_Validate(t *testing.T) {
 				Closed:              false,
 			},
 			wantErr: true,
-		},
-		{
-			name: "valid reward pool",
-			rewardPool: types.RewardPool{
-				LaunchID:            1,
-				Provider:            sample.Address(r),
-				InitialCoins:        validInitialCoins,
-				RemainingCoins:      validRemainingCoins,
-				LastRewardHeight:    50,
-				CurrentRewardHeight: 100,
-				Closed:              false,
-			},
 		},
 	}
 	for _, tt := range tests {

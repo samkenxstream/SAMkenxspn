@@ -36,7 +36,7 @@ func genAndDeliverTxWithRandFeesAddOpAddr(txCtx sdksimulation.OperationInput, op
 	var fees sdk.Coins
 	var err error
 
-	coins, hasNeg := spendable.SafeSub(txCtx.CoinsSpentInMsg)
+	coins, hasNeg := spendable.SafeSub(txCtx.CoinsSpentInMsg...)
 	if hasNeg {
 		return simtypes.NoOpMsg(txCtx.ModuleName, txCtx.MsgType, "message doesn't leave room for fees"), nil, err
 	}
@@ -46,7 +46,8 @@ func genAndDeliverTxWithRandFeesAddOpAddr(txCtx sdksimulation.OperationInput, op
 		return simtypes.NoOpMsg(txCtx.ModuleName, txCtx.MsgType, "unable to generate fees"), nil, err
 	}
 
-	tx, err := helpers.GenTx(
+	tx, err := helpers.GenSignedMockTx(
+		txCtx.R,
 		txCtx.TxGen,
 		[]sdk.Msg{txCtx.Msg},
 		fees,
@@ -56,12 +57,11 @@ func genAndDeliverTxWithRandFeesAddOpAddr(txCtx sdksimulation.OperationInput, op
 		accSequences,
 		privs...,
 	)
-
 	if err != nil {
 		return simtypes.NoOpMsg(txCtx.ModuleName, txCtx.MsgType, "unable to generate mock tx"), nil, err
 	}
 
-	_, _, err = txCtx.App.Deliver(txCtx.TxGen.TxEncoder(), tx)
+	_, _, err = txCtx.App.SimDeliver(txCtx.TxGen.TxEncoder(), tx)
 	if err != nil {
 		return simtypes.NoOpMsg(txCtx.ModuleName, txCtx.MsgType, "unable to deliver tx"), nil, err
 	}
@@ -108,7 +108,6 @@ func SimulateMsgUpdateValidatorDescription(ak types.AccountKeeper, bk types.Bank
 func SimulateMsgAddValidatorOperatorAddress(ak types.AccountKeeper, bk types.BankKeeper, k keeper.Keeper) simtypes.Operation {
 	return func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
-
 		// choose two addresses that are not equal
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 		opAccount, _ := simtypes.RandomAcc(r, accs)

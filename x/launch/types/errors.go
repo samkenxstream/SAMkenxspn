@@ -3,7 +3,7 @@ package types
 // DONTCOVER
 
 import (
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "cosmossdk.io/errors"
 )
 
 // x/launch module sentinel errors
@@ -28,16 +28,24 @@ var (
 	ErrValidatorAlreadyExist       = sdkerrors.Register(ModuleName, 19, "validator already exists")
 	ErrValidatorNotFound           = sdkerrors.Register(ModuleName, 20, "validator not found")
 	ErrChainInactive               = sdkerrors.Register(ModuleName, 21, "the chain is inactive")
-	ErrAddMainnetAccount           = sdkerrors.Register(ModuleName, 22, "accounts can't be added for mainnet")
-	ErrAddMainnetVestingAccount    = sdkerrors.Register(ModuleName, 23, "vesting accounts can't be added for mainnet")
-	ErrRemoveMainnetAccount        = sdkerrors.Register(ModuleName, 24, "accounts can't be removed for mainnet")
-	ErrCreateChainFail             = sdkerrors.Register(ModuleName, 25, "fail to create a new chain")
-	ErrLaunchTimeTooHigh           = sdkerrors.Register(ModuleName, 26, "the remaining time is above authorized launch time")
-	ErrMinSelfDelegationNotReached = sdkerrors.Register(ModuleName, 27, "the minimum self delgation is not reachead")
-	ErrInvalidMetadataLength       = sdkerrors.Register(ModuleName, 28, "metadata field too long")
-	ErrChainHasCampaign            = sdkerrors.Register(ModuleName, 29, "chain already is associated with a campaign")
-	ErrAddChainToCampaign          = sdkerrors.Register(ModuleName, 30, "unable to add chain to campaign")
-	ErrRemainingTimeNotPositive    = sdkerrors.Register(ModuleName, 31, "invalid remaining time")
-	ErrChainMonitoringConnected    = sdkerrors.Register(ModuleName, 32, "chain is already connected to monitoring")
-	ErrRequestSettled              = sdkerrors.Register(ModuleName, 33, "request is already settled")
+	ErrCreateChainFail             = sdkerrors.Register(ModuleName, 22, "fail to create a new chain")
+	ErrLaunchTimeTooHigh           = sdkerrors.Register(ModuleName, 23, "the remaining time is above authorized launch time")
+	ErrMinSelfDelegationNotReached = sdkerrors.Register(ModuleName, 24, "the minimum self delgation is not reachead")
+	ErrInvalidMetadataLength       = sdkerrors.Register(ModuleName, 25, "metadata field too long")
+	ErrChainHasCampaign            = sdkerrors.Register(ModuleName, 26, "chain already is associated with a campaign")
+	ErrAddChainToCampaign          = sdkerrors.Register(ModuleName, 27, "unable to add chain to campaign")
+	ErrChainMonitoringConnected    = sdkerrors.Register(ModuleName, 28, "chain is already connected to monitoring")
+	ErrRequestSettled              = sdkerrors.Register(ModuleName, 29, "request is already settled")
+	ErrInvalidRequestContent       = sdkerrors.Register(ModuleName, 30, "request content is invalid")
+	ErrInvalidRequestForMainnet    = sdkerrors.Register(ModuleName, 31, "request is invalid for mainnet")
+	ErrRequestApplicationFailure   = sdkerrors.Register(ModuleName, 32, "request failed to be applied")
+	ErrInvalidLaunchID             = sdkerrors.Register(ModuleName, 33, "invalid launch ID")
+	ErrInvalidGenesisAddress       = sdkerrors.Register(ModuleName, 34, "invalid genesis account address")
+	ErrInvalidVestingAddress       = sdkerrors.Register(ModuleName, 35, "invalid vesting account address")
+	ErrInvalidValidatorAddress     = sdkerrors.Register(ModuleName, 36, "invalid validator account address")
+	ErrInvalidRequesterAddress     = sdkerrors.Register(ModuleName, 37, "invalid requester account address")
+	ErrCannotUpdateChain           = sdkerrors.Register(ModuleName, 38, "cannot update chain")
+	ErrFundCommunityPool           = sdkerrors.Register(ModuleName, 39, "unable to fund community pool")
+	ErrInvalidModuleName           = sdkerrors.Register(ModuleName, 40, "invalid module name")
+	ErrInvalidParamName            = sdkerrors.Register(ModuleName, 41, "invalid param name")
 )

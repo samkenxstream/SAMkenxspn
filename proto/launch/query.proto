@@ -4,7 +4,8 @@ package tendermint.spn.launch;
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
 import "cosmos/base/query/v1beta1/pagination.proto";
-// this line is used by starport scaffolding # 1
+import "cosmos_proto/cosmos.proto";
+
 import "launch/request.proto";
 import "launch/vesting_account.proto";
 import "launch/genesis_account.proto";
@@ -16,8 +17,6 @@ option go_package = "github.com/tendermint/spn/x/launch/types";
 
 // Query defines the gRPC querier service.
 service Query {
-  // this line is used by starport scaffolding # 2
-
   // Queries a chain by index.
   rpc Chain(QueryGetChainRequest) returns (QueryGetChainResponse) {
     option (google.api.http).get = "/tendermint/spn/launch/chain/{launchID}";
@@ -55,6 +54,11 @@ service Query {
     option (google.api.http).get = "/tendermint/spn/launch/genesis_validator/{launchID}";
   }
 
+  // Queries a list of ParamChange items.
+  rpc ParamChangeAll(QueryAllParamChangeRequest) returns (QueryAllParamChangeResponse) {
+    option (google.api.http).get = "/tendermint/spn/launch/paramChange/{launchID}";
+  }
+
   // Queries a request by index.
   rpc Request(QueryGetRequestRequest) returns (QueryGetRequestResponse) {
     option (google.api.http).get = "/tendermint/spn/launch/request/{launchID}/{requestID}";
@@ -83,13 +87,13 @@ message QueryAllChainRequest {
 }
 
 message QueryAllChainResponse {
-  repeated Chain chain = 1 [(gogoproto.nullable) = false];
+  repeated Chain                         chain      = 1 [(gogoproto.nullable) = false];
   cosmos.base.query.v1beta1.PageResponse pagination = 2;
 }
 
 message QueryGetGenesisAccountRequest {
   uint64 launchID = 1;
-  string address = 2;
+  string address  = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
 }
 
 message QueryGetGenesisAccountResponse {
@@ -97,18 +101,18 @@ message QueryGetGenesisAccountResponse {
 }
 
 message QueryAllGenesisAccountRequest {
-  uint64 launchID = 1;
+  uint64                                launchID   = 1;
   cosmos.base.query.v1beta1.PageRequest pagination = 2;
 }
 
 message QueryAllGenesisAccountResponse {
-  repeated GenesisAccount genesisAccount = 1 [(gogoproto.nullable) = false];
-  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+  repeated GenesisAccount                genesisAccount = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination     = 2;
 }
 
 message QueryGetVestingAccountRequest {
   uint64 launchID = 1;
-  string address = 2;
+  string address  = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
 }
 
 message QueryGetVestingAccountResponse {
@@ -116,18 +120,18 @@ message QueryGetVestingAccountResponse {
 }
 
 message QueryAllVestingAccountRequest {
-  uint64 launchID = 1;
+  uint64                                launchID   = 1;
   cosmos.base.query.v1beta1.PageRequest pagination = 2;
 }
 
 message QueryAllVestingAccountResponse {
-  repeated VestingAccount vestingAccount = 1 [(gogoproto.nullable) = false];
-  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+  repeated VestingAccount                vestingAccount = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination     = 2;
 }
 
 message QueryGetGenesisValidatorRequest {
   uint64 launchID = 1;
-  string address = 2;
+  string address  = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
 }
 
 message QueryGetGenesisValidatorResponse {
@@ -135,17 +139,17 @@ message QueryGetGenesisValidatorResponse {
 }
 
 message QueryAllGenesisValidatorRequest {
-  uint64 launchID = 1;
+  uint64                                launchID   = 1;
   cosmos.base.query.v1beta1.PageRequest pagination = 2;
 }
 
 message QueryAllGenesisValidatorResponse {
-  repeated GenesisValidator genesisValidator = 1 [(gogoproto.nullable) = false];
-  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+  repeated GenesisValidator              genesisValidator = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination       = 2;
 }
 
 message QueryGetRequestRequest {
-  uint64 launchID = 1;
+  uint64 launchID  = 1;
   uint64 requestID = 2;
 }
 
@@ -154,12 +158,12 @@ message QueryGetRequestResponse {
 }
 
 message QueryAllRequestRequest {
-  uint64 launchID = 1;
+  uint64                                launchID   = 1;
   cosmos.base.query.v1beta1.PageRequest pagination = 2;
 }
 
 message QueryAllRequestResponse {
-  repeated Request request = 1 [(gogoproto.nullable) = false];
+  repeated Request                       request    = 1 [(gogoproto.nullable) = false];
   cosmos.base.query.v1beta1.PageResponse pagination = 2;
 }
 
@@ -171,4 +175,12 @@ message QueryParamsResponse {
   Params params = 1 [(gogoproto.nullable) = false];
 }
 
-// this line is used by starport scaffolding # 3
+message QueryAllParamChangeRequest {
+  uint64                                launchID   = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+message QueryAllParamChangeResponse {
+  repeated ParamChange                   paramChanges = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination   = 2;
+}

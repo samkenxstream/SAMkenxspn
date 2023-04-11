@@ -1,13 +1,11 @@
 package keeper
 
 import (
-	"errors"
-
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
+	clienttypes "github.com/cosmos/ibc-go/v6/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/v6/modules/core/04-channel/types"
+	host "github.com/cosmos/ibc-go/v6/modules/core/24-host"
 
 	spntypes "github.com/tendermint/spn/pkg/types"
 	"github.com/tendermint/spn/x/monitoringp/types"
@@ -21,27 +19,10 @@ func (k Keeper) TransmitMonitoringPacket(
 	sourceChannel string,
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
-) error {
-	sourceChannelEnd, found := k.channelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
-	if !found {
-		return sdkerrors.Wrapf(channeltypes.ErrChannelNotFound, "port ID (%s) channel ID (%s)", sourcePort, sourceChannel)
-	}
-
-	destinationPort := sourceChannelEnd.GetCounterparty().GetPortID()
-	destinationChannel := sourceChannelEnd.GetCounterparty().GetChannelID()
-
-	// get the next sequence
-	sequence, found := k.channelKeeper.GetNextSequenceSend(ctx, sourcePort, sourceChannel)
-	if !found {
-		return sdkerrors.Wrapf(
-			channeltypes.ErrSequenceSendNotFound,
-			"source port: %s, source channel: %s", sourcePort, sourceChannel,
-		)
-	}
-
+) (sequence uint64, err error) {
 	channelCap, ok := k.scopedKeeper.GetCapability(ctx, host.ChannelCapabilityPath(sourcePort, sourceChannel))
 	if !ok {
-		return sdkerrors.Wrap(channeltypes.ErrChannelCapabilityNotFound, "module does not own channel capability")
+		return 0, sdkerrors.Wrap(channeltypes.ErrChannelCapabilityNotFound, "module does not own channel capability")
 	}
 
 	// encode the packet
@@ -52,21 +33,10 @@ func (k Keeper) TransmitMonitoringPacket(
 
 	packetBytes, err := types.ModuleCdc.MarshalJSON(&modulePacket)
 	if err != nil {
-		return sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, "cannot marshal the packet: "+err.Error())
+		return 0, sdkerrors.Wrap(types.ErrJSONMarshal, err.Error())
 	}
 
-	packet := channeltypes.NewPacket(
-		packetBytes,
-		sequence,
-		sourcePort,
-		sourceChannel,
-		destinationPort,
-		destinationChannel,
-		timeoutHeight,
-		timeoutTimestamp,
-	)
-
-	return k.channelKeeper.SendPacket(ctx, channelCap, packet)
+	return k.channelKeeper.SendPacket(ctx, channelCap, sourcePort, sourceChannel, timeoutHeight, timeoutTimestamp, packetBytes)
 }
 
 // OnRecvMonitoringPacket processes packet reception
@@ -75,7 +45,7 @@ func (k Keeper) OnRecvMonitoringPacket(
 	_ channeltypes.Packet,
 	_ spntypes.MonitoringPacket,
 ) (packetAck spntypes.MonitoringPacketAck, err error) {
-	return packetAck, errors.New("not implemented")
+	return packetAck, types.ErrNotImplemented
 }
 
 // OnAcknowledgementMonitoringPacket responds to the the success or failure of a packet
@@ -95,13 +65,14 @@ func (k Keeper) OnAcknowledgementMonitoringPacket(
 
 		if err := types.ModuleCdc.UnmarshalJSON(dispatchedAck.Result, &packetAck); err != nil {
 			// The counter-party module doesn't implement the correct acknowledgment format
-			return errors.New("cannot unmarshal acknowledgment")
+			return sdkerrors.Wrap(types.ErrJSONUnmarshal, err.Error())
 		}
 
 		return nil
 	default:
 		// The counter-party module doesn't implement the correct acknowledgment format
-		return errors.New("invalid acknowledgment format")
+		return sdkerrors.Wrapf(types.ErrUnrecognizedAckType, "ack type: %T", ack)
+
 	}
 }
 
@@ -111,5 +82,5 @@ func (k Keeper) OnTimeoutMonitoringPacket(
 	_ channeltypes.Packet,
 	_ spntypes.MonitoringPacket,
 ) error {
-	return errors.New("not implemented")
+	return types.ErrNotImplemented
 }

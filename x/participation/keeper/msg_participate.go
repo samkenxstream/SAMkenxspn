@@ -3,8 +3,9 @@ package keeper
 import (
 	"context"
 
+	sdkerrors "cosmossdk.io/errors"
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	fundraisingtypes "github.com/tendermint/fundraising/x/fundraising/types"
 
 	"github.com/tendermint/spn/x/participation/types"
@@ -49,7 +50,7 @@ func (k msgServer) Participate(goCtx context.Context, msg *types.MsgParticipate)
 	}
 
 	// check if user has enough available allocations to cover tier
-	if tier.RequiredAllocations > availableAlloc {
+	if tier.RequiredAllocations.GT(availableAlloc) {
 		return nil, sdkerrors.Wrapf(types.ErrInsufficientAllocations,
 			"available allocations %d is less than required allocations %d for tier %d",
 			availableAlloc, tier.RequiredAllocations, tier.TierID)
@@ -67,13 +68,13 @@ func (k msgServer) Participate(goCtx context.Context, msg *types.MsgParticipate)
 	}
 
 	// set used allocations
-	numUsedAllocations := uint64(0)
+	numUsedAllocations := sdkmath.ZeroInt()
 	used, found := k.GetUsedAllocations(ctx, msg.Participant)
 	if found {
 		numUsedAllocations = used.NumAllocations
 	}
 
-	numUsedAllocations += tier.RequiredAllocations
+	numUsedAllocations = numUsedAllocations.Add(tier.RequiredAllocations)
 	k.SetUsedAllocations(ctx, types.UsedAllocations{
 		Address:        msg.Participant,
 		NumAllocations: numUsedAllocations,

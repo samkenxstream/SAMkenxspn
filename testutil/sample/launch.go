@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -13,8 +14,8 @@ import (
 )
 
 // Metadata returns sample metadata bytes
-func Metadata(r *rand.Rand, len int) []byte {
-	return Bytes(r, len)
+func Metadata(r *rand.Rand, len uint64) []byte {
+	return Bytes(r, int(len))
 }
 
 // GenesisChainID returns a sample chain id
@@ -33,8 +34,10 @@ func Chain(r *rand.Rand, id, coordinatorID uint64) launch.Chain {
 		CreatedAt:       Duration(r).Milliseconds(),
 		SourceURL:       String(r, 10),
 		SourceHash:      String(r, 10),
+		LaunchTime:      ZeroTime(),
 		LaunchTriggered: false,
 		InitialGenesis:  launch.NewDefaultInitialGenesis(),
+		AccountBalance:  Coins(r),
 		Metadata:        Metadata(r, 20),
 	}
 }
@@ -51,7 +54,7 @@ func GenesisAccount(r *rand.Rand, launchID uint64, address string) launch.Genesi
 // VestingOptions returns a sample VestingOptions
 func VestingOptions(r *rand.Rand) launch.VestingOptions {
 	balance := Coins(r)
-	return *launch.NewDelayedVesting(balance, balance, Duration(r).Milliseconds())
+	return *launch.NewDelayedVesting(balance, balance, Time(r))
 }
 
 // VestingAccount returns a sample VestingAccount
@@ -67,6 +70,16 @@ func VestingAccount(r *rand.Rand, launchID uint64, address string) launch.Vestin
 func AccountRemoval(address string) *launch.AccountRemoval {
 	return &launch.AccountRemoval{
 		Address: address,
+	}
+}
+
+// ParamChange returns a sample ParamChange
+func ParamChange(r *rand.Rand, launchID uint64) launch.ParamChange {
+	return launch.ParamChange{
+		LaunchID: launchID,
+		Module:   AlphaString(r, 5),
+		Param:    AlphaString(r, 5),
+		Value:    Bytes(r, 5),
 	}
 }
 
@@ -91,13 +104,6 @@ func GenesisValidatorPeer(r *rand.Rand) launch.Peer {
 	}
 }
 
-// ValidatorRemoval returns a sample ValidatorRemoval
-func ValidatorRemoval(address string) launch.ValidatorRemoval {
-	return launch.ValidatorRemoval{
-		ValAddress: address,
-	}
-}
-
 // RequestWithContent creates a launch request object with launch id and content
 func RequestWithContent(r *rand.Rand, launchID uint64, content launch.RequestContent) launch.Request {
 	return launch.Request{
@@ -118,6 +124,11 @@ func RequestWithContentAndCreator(r *rand.Rand, launchID uint64, content launch.
 		CreatedAt: Duration(r).Milliseconds(),
 		Content:   content,
 	}
+}
+
+// RequestContent returns a request content with Genesis Account
+func RequestContent(r *rand.Rand, launchID uint64) launch.RequestContent {
+	return launch.NewGenesisAccount(launchID, Address(r), Coins(r))
 }
 
 // AllRequestContents creates all contents types for request
@@ -147,9 +158,15 @@ func Request(r *rand.Rand, launchID uint64, address string) launch.Request {
 
 // MsgCreateChain returns a sample MsgCreateChain
 func MsgCreateChain(r *rand.Rand, coordAddress, genesisURL string, hasCampaign bool, campaignID uint64) launch.MsgCreateChain {
+	initialGenesis := launch.NewDefaultInitialGenesis()
 	var genesisHash string
 	if len(genesisURL) > 0 {
 		genesisHash = GenesisHash(r)
+		ig := launch.NewGenesisURL(
+			genesisURL,
+			genesisHash,
+		)
+		initialGenesis = ig
 	}
 
 	return *launch.NewMsgCreateChain(
@@ -157,10 +174,10 @@ func MsgCreateChain(r *rand.Rand, coordAddress, genesisURL string, hasCampaign b
 		GenesisChainID(r),
 		String(r, 10),
 		String(r, 10),
-		genesisURL,
-		genesisHash,
+		initialGenesis,
 		hasCampaign,
 		campaignID,
+		Coins(r),
 		Metadata(r, 20),
 	)
 }
@@ -227,54 +244,66 @@ func MsgUpdateLaunchInformation(
 	)
 }
 
-// MsgRequestAddAccount returns a sample MsgRequestAddAccount
-func MsgRequestAddAccount(r *rand.Rand, creator, address string, launchID uint64) launch.MsgRequestAddAccount {
-	return *launch.NewMsgRequestAddAccount(
+// MsgSendRequestWithAddAccount returns a sample MsgSendRequest with AddAccount request content
+func MsgSendRequestWithAddAccount(r *rand.Rand, creator, address string, launchID uint64) launch.MsgSendRequest {
+	return *launch.NewMsgSendRequest(
 		creator,
 		launchID,
-		address,
-		Coins(r),
+		launch.NewGenesisAccount(launchID, address, Coins(r)),
 	)
 }
 
-// MsgRequestAddVestingAccount returns a sample MsgRequestAddVestingAccount
-func MsgRequestAddVestingAccount(r *rand.Rand, creator, address string, launchID uint64) launch.MsgRequestAddVestingAccount {
-	return *launch.NewMsgRequestAddVestingAccount(
+// MsgSendRequestWithAddVestingAccount returns a sample MsgSendRequest with AddVestingAccount request content
+func MsgSendRequestWithAddVestingAccount(r *rand.Rand, creator, address string, launchID uint64) launch.MsgSendRequest {
+	return *launch.NewMsgSendRequest(
 		creator,
 		launchID,
-		address,
-		VestingOptions(r),
+		launch.NewVestingAccount(launchID, address, VestingOptions(r)),
 	)
 }
 
-// MsgRequestRemoveAccount returns a sample MsgRequestRemoveAccount
-func MsgRequestRemoveAccount(creator, address string, launchID uint64) launch.MsgRequestRemoveAccount {
-	return *launch.NewMsgRequestRemoveAccount(
+// MsgSendRequestWithRemoveAccount returns a sample MsgSendRequest with RemoveAccount request content
+func MsgSendRequestWithRemoveAccount(creator, address string, launchID uint64) launch.MsgSendRequest {
+	return *launch.NewMsgSendRequest(
 		creator,
 		launchID,
-		address,
+		launch.NewAccountRemoval(address),
 	)
 }
 
-// MsgRequestRemoveValidator returns a sample MsgRequestRemoveValidator
-func MsgRequestRemoveValidator(creator, validatorAddr string, launchID uint64) launch.MsgRequestRemoveValidator {
-	return *launch.NewMsgRequestRemoveValidator(
+// MsgSendRequestWithRemoveValidator returns a sample MsgSendRequest with RemoveValidator request content
+func MsgSendRequestWithRemoveValidator(creator, validatorAddr string, launchID uint64) launch.MsgSendRequest {
+	return *launch.NewMsgSendRequest(
 		creator,
 		launchID,
-		validatorAddr,
+		launch.NewValidatorRemoval(validatorAddr),
 	)
 }
 
-// MsgRequestAddValidator returns a sample MsgRequestAddValidator
-func MsgRequestAddValidator(r *rand.Rand, creator, address string, launchID uint64) launch.MsgRequestAddValidator {
-	return *launch.NewMsgRequestAddValidator(
+// MsgSendRequestWithParamChange returns a sample MsgSendRequest with ParamChange request content
+func MsgSendRequestWithParamChange(r *rand.Rand, creator string, launchID uint64) launch.MsgSendRequest {
+	pc := ParamChange(r, launchID)
+
+	return *launch.NewMsgSendRequest(
 		creator,
 		launchID,
-		address,
-		Bytes(r, 500),
-		Bytes(r, 30),
-		Coin(r),
-		GenesisValidatorPeer(r),
+		launch.NewParamChange(pc.LaunchID, pc.Module, pc.Param, pc.Value),
+	)
+}
+
+// MsgSendRequestWithAddValidator returns a sample MsgSendRequest with AddValidator request content
+func MsgSendRequestWithAddValidator(r *rand.Rand, creator, address string, launchID uint64) launch.MsgSendRequest {
+	return *launch.NewMsgSendRequest(
+		creator,
+		launchID,
+		launch.NewGenesisValidator(
+			launchID,
+			address,
+			Bytes(r, 500),
+			Bytes(r, 30),
+			Coin(r),
+			GenesisValidatorPeer(r),
+		),
 	)
 }
 
@@ -287,13 +316,15 @@ func MsgRevertLaunch(coordinator string, launchID uint64) launch.MsgRevertLaunch
 }
 
 // MsgTriggerLaunch returns a sample MsgTriggerLaunch
-func MsgTriggerLaunch(r *rand.Rand, coordinator string, launchID uint64) launch.MsgTriggerLaunch {
-	launchTimeRange := launch.DefaultMaxLaunchTime - launch.DefaultMinLaunchTime
-	launchTime := r.Int63n(launchTimeRange) + launch.DefaultMinLaunchTime
+func MsgTriggerLaunch(r *rand.Rand, coordinator string, launchID uint64, currentTime time.Time) launch.MsgTriggerLaunch {
+	// Get a random duration between min and max launch time
+	launchTimeRange := launch.DefaultMaxLaunchTime.Milliseconds() - launch.DefaultMinLaunchTime.Milliseconds()
+	remainingTime := launch.DefaultMinLaunchTime + time.Millisecond*time.Duration(r.Int63n(launchTimeRange))
+
 	return *launch.NewMsgTriggerLaunch(
 		coordinator,
 		launchID,
-		launchTime,
+		currentTime.Add(remainingTime),
 	)
 }
 
@@ -315,13 +346,22 @@ func GenesisHash(r *rand.Rand) string {
 
 // LaunchParams returns a sample of params for the launch module
 func LaunchParams(r *rand.Rand) launch.Params {
-	maxLaunchTime := launch.DefaultMaxLaunchTime - r.Int63n(10)
-	minLaunchTime := r.Int63n(10) + launch.DefaultMinLaunchTime
+	maxLaunchTime := launch.DefaultMaxLaunchTime - time.Second*time.Duration(r.Int63n(10))
+	minLaunchTime := launch.DefaultMinLaunchTime + time.Second*time.Duration(r.Int63n(10))
+	maxMetadataLength := launch.DefaultMaxMetadataLength
 
 	// assign random small amount of staking denom
 	chainCreationFee := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, r.Int63n(100)+1))
+	requestFee := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, r.Int63n(100)+1))
 
-	return launch.NewParams(minLaunchTime, maxLaunchTime, launch.DefaultRevertDelay, chainCreationFee)
+	return launch.NewParams(
+		minLaunchTime,
+		maxLaunchTime,
+		launch.DefaultRevertDelay,
+		chainCreationFee,
+		requestFee,
+		maxMetadataLength,
+	)
 }
 
 // LaunchGenesisState returns a sample genesis state for the launch module
@@ -330,31 +370,31 @@ func LaunchGenesisState(r *rand.Rand, addresses ...string) launch.GenesisState {
 		addresses = append(addresses, Address(r))
 	}
 	return launch.GenesisState{
-		ChainList: []launch.Chain{
+		Chains: []launch.Chain{
 			Chain(r, 0, 0),
 			Chain(r, 1, 1),
 		},
 		ChainCounter: 2,
-		GenesisAccountList: []launch.GenesisAccount{
+		GenesisAccounts: []launch.GenesisAccount{
 			GenesisAccount(r, 0, addresses[0]),
 			GenesisAccount(r, 0, addresses[1]),
 			GenesisAccount(r, 1, addresses[2]),
 		},
-		VestingAccountList: []launch.VestingAccount{
+		VestingAccounts: []launch.VestingAccount{
 			VestingAccount(r, 0, addresses[3]),
 			VestingAccount(r, 0, addresses[4]),
 			VestingAccount(r, 1, addresses[5]),
 		},
-		GenesisValidatorList: []launch.GenesisValidator{
+		GenesisValidators: []launch.GenesisValidator{
 			GenesisValidator(r, 0, addresses[6]),
 			GenesisValidator(r, 0, addresses[7]),
 			GenesisValidator(r, 1, addresses[8]),
 		},
-		RequestList: []launch.Request{
+		Requests: []launch.Request{
 			Request(r, 0, addresses[9]),
 			Request(r, 1, addresses[10]),
 		},
-		RequestCounterList: []launch.RequestCounter{
+		RequestCounters: []launch.RequestCounter{
 			{
 				LaunchID: 0,
 				Counter:  1,

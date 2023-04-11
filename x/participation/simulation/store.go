@@ -3,6 +3,7 @@ package simulation
 import (
 	"math/rand"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
@@ -126,9 +127,9 @@ func RandomAuctionWithdrawEnabled(
 func RandomAccWithAvailableAllocations(ctx sdk.Context, r *rand.Rand,
 	k keeper.Keeper,
 	accs []simtypes.Account,
-	desired uint64,
+	desired sdkmath.Int,
 	auctionID uint64,
-) (simtypes.Account, uint64, bool) {
+) (simtypes.Account, sdkmath.Int, bool) {
 	// Randomize the set
 	r.Shuffle(len(accs), func(i, j int) {
 		accs[i], accs[j] = accs[j], accs[i]
@@ -141,7 +142,7 @@ func RandomAccWithAvailableAllocations(ctx sdk.Context, r *rand.Rand,
 			continue
 		}
 
-		if amt >= desired {
+		if amt.GTE(desired) {
 			_, found := k.GetAuctionUsedAllocations(ctx, acc.Address.String(), auctionID)
 			if found {
 				continue
@@ -151,7 +152,7 @@ func RandomAccWithAvailableAllocations(ctx sdk.Context, r *rand.Rand,
 		}
 	}
 
-	return simtypes.Account{}, 0, false
+	return simtypes.Account{}, sdkmath.ZeroInt(), false
 }
 
 // RandomAccWithAuctionUsedAllocationsNotWithdrawn returns random account that has used allocations for the given
@@ -191,7 +192,7 @@ func RandomTierFromList(r *rand.Rand, tierList []types.Tier) (types.Tier, bool) 
 }
 
 func FindLargestMaxBid(tierList []types.Tier) (types.Tier, bool) {
-	largestMaxBid := sdk.ZeroInt()
+	largestMaxBid := sdkmath.ZeroInt()
 	if len(tierList) == 0 {
 		return types.Tier{}, false
 	}

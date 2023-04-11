@@ -1,19 +1,23 @@
 package types
 
 import (
+	"time"
+
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
+	profile "github.com/tendermint/spn/x/profile/types"
 )
 
 const TypeMsgTriggerLaunch = "trigger_launch"
 
 var _ sdk.Msg = &MsgTriggerLaunch{}
 
-func NewMsgTriggerLaunch(coordinator string, launchID uint64, remainingTime int64) *MsgTriggerLaunch {
+func NewMsgTriggerLaunch(coordinator string, launchID uint64, launchTime time.Time) *MsgTriggerLaunch {
 	return &MsgTriggerLaunch{
-		Coordinator:   coordinator,
-		LaunchID:      launchID,
-		RemainingTime: remainingTime,
+		Coordinator: coordinator,
+		LaunchID:    launchID,
+		LaunchTime:  launchTime,
 	}
 }
 
@@ -41,11 +45,8 @@ func (msg *MsgTriggerLaunch) GetSignBytes() []byte {
 func (msg *MsgTriggerLaunch) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Coordinator)
 	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid coordinator address (%s)", err)
+		return sdkerrors.Wrap(profile.ErrInvalidCoordAddress, err.Error())
 	}
 
-	if msg.RemainingTime <= 0 {
-		return sdkerrors.Wrapf(ErrRemainingTimeNotPositive, "value must be greater than 0, %v <= 0", msg.RemainingTime)
-	}
 	return nil
 }

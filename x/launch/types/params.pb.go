@@ -9,15 +9,19 @@ import (
 	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
+	_ "google.golang.org/protobuf/types/known/durationpb"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+	time "time"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
+var _ = time.Kitchen
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -28,8 +32,11 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 // Params defines the parameters for the staking module.
 type Params struct {
 	LaunchTimeRange  LaunchTimeRange                          `protobuf:"bytes,1,opt,name=launchTimeRange,proto3" json:"launchTimeRange"`
-	RevertDelay      int64                                    `protobuf:"varint,2,opt,name=revertDelay,proto3" json:"revertDelay,omitempty"`
+	RevertDelay      time.Duration                            `protobuf:"bytes,2,opt,name=revertDelay,proto3,stdduration" json:"revertDelay"`
 	ChainCreationFee github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,3,rep,name=chainCreationFee,proto3,casttype=github.com/cosmos/cosmos-sdk/types.Coin,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"chainCreationFee"`
+	// requestFee is the fee for making a request to a chain
+	RequestFee        github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,4,rep,name=requestFee,proto3,casttype=github.com/cosmos/cosmos-sdk/types.Coin,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"requestFee"`
+	MaxMetadataLength uint64                                   `protobuf:"varint,5,opt,name=maxMetadataLength,proto3" json:"maxMetadataLength,omitempty"`
 }
 
 func (m *Params) Reset()      { *m = Params{} }
@@ -71,7 +78,7 @@ func (m *Params) GetLaunchTimeRange() LaunchTimeRange {
 	return LaunchTimeRange{}
 }
 
-func (m *Params) GetRevertDelay() int64 {
+func (m *Params) GetRevertDelay() time.Duration {
 	if m != nil {
 		return m.RevertDelay
 	}
@@ -85,9 +92,23 @@ func (m *Params) GetChainCreationFee() github_com_cosmos_cosmos_sdk_types.Coins 
 	return nil
 }
 
+func (m *Params) GetRequestFee() github_com_cosmos_cosmos_sdk_types.Coins {
+	if m != nil {
+		return m.RequestFee
+	}
+	return nil
+}
+
+func (m *Params) GetMaxMetadataLength() uint64 {
+	if m != nil {
+		return m.MaxMetadataLength
+	}
+	return 0
+}
+
 type LaunchTimeRange struct {
-	MinLaunchTime int64 `protobuf:"varint,1,opt,name=minLaunchTime,proto3" json:"minLaunchTime,omitempty"`
-	MaxLaunchTime int64 `protobuf:"varint,2,opt,name=maxLaunchTime,proto3" json:"maxLaunchTime,omitempty"`
+	MinLaunchTime time.Duration `protobuf:"bytes,1,opt,name=minLaunchTime,proto3,stdduration" json:"minLaunchTime"`
+	MaxLaunchTime time.Duration `protobuf:"bytes,2,opt,name=maxLaunchTime,proto3,stdduration" json:"maxLaunchTime"`
 }
 
 func (m *LaunchTimeRange) Reset()         { *m = LaunchTimeRange{} }
@@ -123,14 +144,14 @@ func (m *LaunchTimeRange) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_LaunchTimeRange proto.InternalMessageInfo
 
-func (m *LaunchTimeRange) GetMinLaunchTime() int64 {
+func (m *LaunchTimeRange) GetMinLaunchTime() time.Duration {
 	if m != nil {
 		return m.MinLaunchTime
 	}
 	return 0
 }
 
-func (m *LaunchTimeRange) GetMaxLaunchTime() int64 {
+func (m *LaunchTimeRange) GetMaxLaunchTime() time.Duration {
 	if m != nil {
 		return m.MaxLaunchTime
 	}
@@ -145,30 +166,35 @@ func init() {
 func init() { proto.RegisterFile("launch/params.proto", fileDescriptor_b8f73d6645a211b2) }
 
 var fileDescriptor_b8f73d6645a211b2 = []byte{
-	// 356 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x92, 0xb1, 0x4e, 0xeb, 0x30,
-	0x14, 0x86, 0x93, 0xa6, 0xea, 0xe0, 0xea, 0xaa, 0x57, 0xb9, 0x17, 0xa9, 0x74, 0x70, 0xa2, 0x0a,
-	0x41, 0x16, 0x6c, 0xb5, 0x6c, 0x8c, 0x29, 0x62, 0x62, 0x40, 0x11, 0x62, 0x00, 0x31, 0x38, 0xa9,
-	0x95, 0x5a, 0x34, 0x76, 0x14, 0xbb, 0x55, 0xfb, 0x16, 0x8c, 0x8c, 0x88, 0x11, 0x89, 0xf7, 0xe8,
-	0xd8, 0x91, 0xa9, 0xa0, 0xf6, 0x2d, 0x98, 0x50, 0x9d, 0x48, 0x4d, 0x0b, 0x03, 0x93, 0xad, 0xdf,
-	0x9f, 0xff, 0x73, 0x7e, 0x1f, 0x83, 0x7f, 0x43, 0x32, 0xe2, 0xd1, 0x00, 0xa7, 0x24, 0x23, 0x89,
-	0x44, 0x69, 0x26, 0x94, 0xb0, 0xf7, 0x14, 0xe5, 0x7d, 0x9a, 0x25, 0x8c, 0x2b, 0x24, 0x53, 0x8e,
-	0x72, 0xa6, 0xf5, 0x3f, 0x16, 0xb1, 0xd0, 0x04, 0x5e, 0xef, 0x72, 0xb8, 0x05, 0x23, 0x21, 0x13,
-	0x21, 0x71, 0x48, 0x24, 0xc5, 0xe3, 0x4e, 0x48, 0x15, 0xe9, 0xe0, 0x48, 0x30, 0x9e, 0x9f, 0xb7,
-	0x5f, 0x2b, 0xa0, 0x76, 0xa9, 0xdd, 0xed, 0x6b, 0xd0, 0xc8, 0xad, 0xae, 0x58, 0x42, 0x03, 0xc2,
-	0x63, 0xda, 0x34, 0x5d, 0xd3, 0xab, 0x77, 0x0f, 0xd1, 0x8f, 0x15, 0xd1, 0xc5, 0x36, 0xed, 0x57,
-	0x67, 0x0b, 0xc7, 0x08, 0x76, 0x4d, 0x6c, 0x17, 0xd4, 0x33, 0x3a, 0xa6, 0x99, 0x3a, 0xa3, 0x43,
-	0x32, 0x6d, 0x56, 0x5c, 0xd3, 0xb3, 0x82, 0xb2, 0x64, 0x3f, 0x9b, 0xe0, 0x6f, 0x34, 0x20, 0x8c,
-	0xf7, 0x32, 0x4a, 0x14, 0x13, 0xfc, 0x9c, 0xd2, 0xa6, 0xe5, 0x5a, 0x5e, 0xbd, 0xbb, 0x8f, 0xf2,
-	0x00, 0x68, 0x1d, 0x00, 0x15, 0x01, 0x50, 0x4f, 0x30, 0xee, 0xdf, 0xae, 0xcb, 0x7d, 0x2e, 0x9c,
-	0xa3, 0x98, 0xa9, 0xc1, 0x28, 0x44, 0x91, 0x48, 0x70, 0x91, 0x36, 0x5f, 0x8e, 0x65, 0xff, 0x1e,
-	0xab, 0x69, 0x4a, 0xa5, 0xbe, 0xf0, 0xf2, 0xee, 0x78, 0xbf, 0x44, 0x65, 0xf0, 0xad, 0x9f, 0xd3,
-	0xea, 0xe3, 0x93, 0x63, 0xb4, 0xef, 0x40, 0x63, 0x27, 0xb6, 0x7d, 0x00, 0xfe, 0x24, 0x8c, 0x6f,
-	0x54, 0xfd, 0x6a, 0x56, 0xb0, 0x2d, 0x6a, 0x8a, 0x4c, 0x4a, 0x54, 0xa5, 0xa0, 0xca, 0xa2, 0xef,
-	0xcf, 0x96, 0xd0, 0x9c, 0x2f, 0xa1, 0xf9, 0xb1, 0x84, 0xe6, 0xc3, 0x0a, 0x1a, 0xf3, 0x15, 0x34,
-	0xde, 0x56, 0xd0, 0xb8, 0x29, 0xb7, 0xbe, 0x19, 0x07, 0x96, 0x29, 0xc7, 0x13, 0x5c, 0x7c, 0x13,
-	0x1d, 0x20, 0xac, 0xe9, 0xc9, 0x9e, 0x7c, 0x05, 0x00, 0x00, 0xff, 0xff, 0xc2, 0x7c, 0x03, 0x0f,
-	0x3d, 0x02, 0x00, 0x00,
+	// 436 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x93, 0x3f, 0x6f, 0xd4, 0x30,
+	0x18, 0xc6, 0xe3, 0x36, 0x54, 0xc8, 0x15, 0x2a, 0x04, 0x90, 0x42, 0x87, 0xe4, 0xd4, 0x01, 0x6e,
+	0x00, 0x5b, 0x85, 0x8d, 0x31, 0x2d, 0x48, 0x48, 0x45, 0x42, 0x11, 0x62, 0x80, 0xc9, 0x49, 0x5e,
+	0x12, 0x8b, 0x8b, 0x1d, 0x6c, 0xa7, 0xba, 0x7e, 0x0b, 0x26, 0x54, 0x36, 0xc4, 0x82, 0xc4, 0x27,
+	0xe9, 0xd8, 0x91, 0xa9, 0x87, 0xee, 0xbe, 0x05, 0x13, 0x8a, 0x93, 0xd3, 0xe5, 0xee, 0x18, 0x8e,
+	0x89, 0x29, 0x7f, 0xde, 0xe7, 0x7d, 0xde, 0x9f, 0x1e, 0xbf, 0xc6, 0xb7, 0x47, 0xac, 0x16, 0x69,
+	0x41, 0x2b, 0xa6, 0x58, 0xa9, 0x49, 0xa5, 0xa4, 0x91, 0xde, 0x5d, 0x03, 0x22, 0x03, 0x55, 0x72,
+	0x61, 0x88, 0xae, 0x04, 0x69, 0x35, 0xfb, 0x77, 0x72, 0x99, 0x4b, 0xab, 0xa0, 0xcd, 0x5b, 0x2b,
+	0xde, 0x0f, 0x52, 0xa9, 0x4b, 0xa9, 0x69, 0xc2, 0x34, 0xd0, 0xd3, 0xc3, 0x04, 0x0c, 0x3b, 0xa4,
+	0xa9, 0xe4, 0x62, 0x5e, 0xcf, 0xa5, 0xcc, 0x47, 0x40, 0xed, 0x57, 0x52, 0xbf, 0xa7, 0x59, 0xad,
+	0x98, 0xe1, 0xb2, 0xab, 0x1f, 0x7c, 0x71, 0xf1, 0xce, 0x2b, 0x3b, 0xdd, 0x7b, 0x83, 0xf7, 0xda,
+	0x51, 0xaf, 0x79, 0x09, 0x31, 0x13, 0x39, 0xf8, 0x68, 0x80, 0x86, 0xbb, 0x8f, 0xef, 0x93, 0xbf,
+	0x12, 0x91, 0x93, 0x65, 0x75, 0xe4, 0x5e, 0x5c, 0x85, 0x4e, 0xbc, 0x6a, 0xe2, 0x3d, 0xc3, 0xbb,
+	0x0a, 0x4e, 0x41, 0x99, 0x63, 0x18, 0xb1, 0x33, 0x7f, 0xcb, 0x7a, 0xde, 0x23, 0x2d, 0x18, 0x99,
+	0x83, 0x91, 0xe3, 0x0e, 0x2c, 0xba, 0xde, 0xd8, 0x9c, 0x4f, 0x42, 0x14, 0xf7, 0xfb, 0xbc, 0x6f,
+	0x08, 0xdf, 0x4c, 0x0b, 0xc6, 0xc5, 0x91, 0x02, 0x2b, 0x7c, 0x0e, 0xe0, 0x6f, 0x0f, 0xb6, 0xad,
+	0x59, 0x9b, 0x02, 0x69, 0x52, 0x20, 0x5d, 0x0a, 0xe4, 0x48, 0x72, 0x11, 0xbd, 0x6b, 0xcc, 0x7e,
+	0x5f, 0x85, 0x0f, 0x72, 0x6e, 0x8a, 0x3a, 0x21, 0xa9, 0x2c, 0x69, 0x17, 0x59, 0xfb, 0x78, 0xa4,
+	0xb3, 0x0f, 0xd4, 0x9c, 0x55, 0xa0, 0x6d, 0xc3, 0x8f, 0x49, 0x38, 0xdc, 0x50, 0xaa, 0xe3, 0x35,
+	0x1e, 0xef, 0x33, 0xc2, 0x58, 0xc1, 0xc7, 0x1a, 0xb4, 0x69, 0xf0, 0xdc, 0xff, 0x8a, 0xd7, 0x23,
+	0xf1, 0x1e, 0xe2, 0x5b, 0x25, 0x1b, 0xbf, 0x04, 0xc3, 0x32, 0x66, 0xd8, 0x09, 0x88, 0xdc, 0x14,
+	0xfe, 0xb5, 0x01, 0x1a, 0xba, 0xf1, 0x7a, 0xe1, 0xa9, 0x7b, 0xfe, 0x35, 0x74, 0x0e, 0xbe, 0x23,
+	0xbc, 0xb7, 0x72, 0xc6, 0xde, 0x0b, 0x7c, 0xa3, 0xe4, 0x62, 0xf1, 0xb7, 0x5b, 0x91, 0x8d, 0x8e,
+	0x73, 0xb9, 0xd3, 0x5a, 0xb1, 0x71, 0xcf, 0x6a, 0xeb, 0x5f, 0xac, 0xfa, 0x9d, 0x51, 0x74, 0x31,
+	0x0d, 0xd0, 0xe5, 0x34, 0x40, 0xbf, 0xa6, 0x01, 0xfa, 0x34, 0x0b, 0x9c, 0xcb, 0x59, 0xe0, 0xfc,
+	0x9c, 0x05, 0xce, 0xdb, 0x7e, 0x5a, 0x8b, 0x2d, 0xa6, 0xba, 0x12, 0x74, 0x4c, 0xbb, 0xdb, 0x67,
+	0x33, 0x4b, 0x76, 0xec, 0xbc, 0x27, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x8c, 0x6f, 0xdd, 0xf3,
+	0x94, 0x03, 0x00, 0x00,
 }
 
 func (m *Params) Marshal() (dAtA []byte, err error) {
@@ -191,6 +217,25 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.MaxMetadataLength != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.MaxMetadataLength))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.RequestFee) > 0 {
+		for iNdEx := len(m.RequestFee) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.RequestFee[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintParams(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.ChainCreationFee) > 0 {
 		for iNdEx := len(m.ChainCreationFee) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -205,11 +250,14 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0x1a
 		}
 	}
-	if m.RevertDelay != 0 {
-		i = encodeVarintParams(dAtA, i, uint64(m.RevertDelay))
-		i--
-		dAtA[i] = 0x10
+	n1, err1 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.RevertDelay, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.RevertDelay):])
+	if err1 != nil {
+		return 0, err1
 	}
+	i -= n1
+	i = encodeVarintParams(dAtA, i, uint64(n1))
+	i--
+	dAtA[i] = 0x12
 	{
 		size, err := m.LaunchTimeRange.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -243,16 +291,22 @@ func (m *LaunchTimeRange) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.MaxLaunchTime != 0 {
-		i = encodeVarintParams(dAtA, i, uint64(m.MaxLaunchTime))
-		i--
-		dAtA[i] = 0x10
+	n3, err3 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxLaunchTime, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxLaunchTime):])
+	if err3 != nil {
+		return 0, err3
 	}
-	if m.MinLaunchTime != 0 {
-		i = encodeVarintParams(dAtA, i, uint64(m.MinLaunchTime))
-		i--
-		dAtA[i] = 0x8
+	i -= n3
+	i = encodeVarintParams(dAtA, i, uint64(n3))
+	i--
+	dAtA[i] = 0x12
+	n4, err4 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MinLaunchTime, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MinLaunchTime):])
+	if err4 != nil {
+		return 0, err4
 	}
+	i -= n4
+	i = encodeVarintParams(dAtA, i, uint64(n4))
+	i--
+	dAtA[i] = 0xa
 	return len(dAtA) - i, nil
 }
 
@@ -275,14 +329,22 @@ func (m *Params) Size() (n int) {
 	_ = l
 	l = m.LaunchTimeRange.Size()
 	n += 1 + l + sovParams(uint64(l))
-	if m.RevertDelay != 0 {
-		n += 1 + sovParams(uint64(m.RevertDelay))
-	}
+	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.RevertDelay)
+	n += 1 + l + sovParams(uint64(l))
 	if len(m.ChainCreationFee) > 0 {
 		for _, e := range m.ChainCreationFee {
 			l = e.Size()
 			n += 1 + l + sovParams(uint64(l))
 		}
+	}
+	if len(m.RequestFee) > 0 {
+		for _, e := range m.RequestFee {
+			l = e.Size()
+			n += 1 + l + sovParams(uint64(l))
+		}
+	}
+	if m.MaxMetadataLength != 0 {
+		n += 1 + sovParams(uint64(m.MaxMetadataLength))
 	}
 	return n
 }
@@ -293,12 +355,10 @@ func (m *LaunchTimeRange) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.MinLaunchTime != 0 {
-		n += 1 + sovParams(uint64(m.MinLaunchTime))
-	}
-	if m.MaxLaunchTime != 0 {
-		n += 1 + sovParams(uint64(m.MaxLaunchTime))
-	}
+	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.MinLaunchTime)
+	n += 1 + l + sovParams(uint64(l))
+	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxLaunchTime)
+	n += 1 + l + sovParams(uint64(l))
 	return n
 }
 
@@ -371,10 +431,10 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 2:
-			if wireType != 0 {
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RevertDelay", wireType)
 			}
-			m.RevertDelay = 0
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowParams
@@ -384,11 +444,25 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.RevertDelay |= int64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			if msglen < 0 {
+				return ErrInvalidLengthParams
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := github_com_gogo_protobuf_types.StdDurationUnmarshal(&m.RevertDelay, dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ChainCreationFee", wireType)
@@ -423,6 +497,59 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequestFee", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthParams
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RequestFee = append(m.RequestFee, github_com_cosmos_cosmos_sdk_types.Coin{})
+			if err := m.RequestFee[len(m.RequestFee)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxMetadataLength", wireType)
+			}
+			m.MaxMetadataLength = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MaxMetadataLength |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipParams(dAtA[iNdEx:])
@@ -474,10 +601,10 @@ func (m *LaunchTimeRange) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MinLaunchTime", wireType)
 			}
-			m.MinLaunchTime = 0
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowParams
@@ -487,16 +614,30 @@ func (m *LaunchTimeRange) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.MinLaunchTime |= int64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			if msglen < 0 {
+				return ErrInvalidLengthParams
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := github_com_gogo_protobuf_types.StdDurationUnmarshal(&m.MinLaunchTime, dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		case 2:
-			if wireType != 0 {
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MaxLaunchTime", wireType)
 			}
-			m.MaxLaunchTime = 0
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowParams
@@ -506,11 +647,25 @@ func (m *LaunchTimeRange) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.MaxLaunchTime |= int64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			if msglen < 0 {
+				return ErrInvalidLengthParams
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := github_com_gogo_protobuf_types.StdDurationUnmarshal(&m.MaxLaunchTime, dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipParams(dAtA[iNdEx:])

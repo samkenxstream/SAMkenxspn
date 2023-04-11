@@ -3,11 +3,11 @@ package types_test
 import (
 	"testing"
 
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tendermint/spn/testutil/sample"
 	"github.com/tendermint/spn/x/launch/types"
+	profile "github.com/tendermint/spn/x/profile/types"
 )
 
 func TestMsgSettleRequest_ValidateBasic(t *testing.T) {
@@ -18,17 +18,17 @@ func TestMsgSettleRequest_ValidateBasic(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "invalid coordinator address",
+			name: "should prevent validate message with invalid coordinator address",
 			msg: types.MsgSettleRequest{
 				Signer:    "invalid_address",
 				LaunchID:  launchID,
 				RequestID: 10,
 				Approve:   true,
 			},
-			err: sdkerrors.ErrInvalidAddress,
+			err: profile.ErrInvalidCoordAddress,
 		},
 		{
-			name: "valid message",
+			name: "should validate valid message",
 			msg: types.MsgSettleRequest{
 				Signer:    sample.Address(r),
 				LaunchID:  launchID,

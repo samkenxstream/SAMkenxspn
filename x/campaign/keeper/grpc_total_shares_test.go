@@ -26,16 +26,15 @@ func TestTotalSharesQuery(t *testing.T) {
 		err      error
 	}{
 		{
-			desc:     "First",
+			desc:     "should allow valid query",
 			request:  &types.QueryTotalSharesRequest{},
 			response: &types.QueryTotalSharesResponse{TotalShares: spntypes.TotalShareNumber},
 		},
 		{
-			desc: "InvalidRequest",
+			desc: "should return InvalidRequest",
 			err:  status.Error(codes.InvalidArgument, "invalid request"),
 		},
 	} {
-		tc := tc
 		t.Run(tc.desc, func(t *testing.T) {
 			response, err := tk.CampaignKeeper.TotalShares(wctx, tc.request)
 			if tc.err != nil {

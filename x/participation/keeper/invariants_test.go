@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"testing"
 
+	sdkmath "cosmossdk.io/math"
 	"github.com/stretchr/testify/require"
 
 	testkeeper "github.com/tendermint/spn/testutil/keeper"
@@ -19,33 +20,33 @@ func TestMismatchUsedAllocationsInvariant(t *testing.T) {
 			{
 				Address:        addr,
 				AuctionID:      1,
-				NumAllocations: 1,
+				NumAllocations: sdkmath.OneInt(),
 				Withdrawn:      false,
 			},
 			{
 				Address:        addr,
 				AuctionID:      2,
-				NumAllocations: 1,
+				NumAllocations: sdkmath.OneInt(),
 				Withdrawn:      false,
 			},
 			{
 				Address:        addr,
 				AuctionID:      3,
-				NumAllocations: 5,
+				NumAllocations: sdkmath.NewInt(5),
 				Withdrawn:      true,
 			},
 		}
 		invalidUsedAllocs = types.UsedAllocations{
 			Address:        addr,
-			NumAllocations: 7,
+			NumAllocations: sdkmath.NewInt(7),
 		}
 		validUsedAllocs = types.UsedAllocations{
 			Address:        addr,
-			NumAllocations: 2,
+			NumAllocations: sdkmath.NewInt(2),
 		}
 	)
 
-	t.Run("valid case", func(t *testing.T) {
+	t.Run("should allow valid case", func(t *testing.T) {
 		tk.ParticipationKeeper.SetUsedAllocations(ctx, validUsedAllocs)
 		for _, auction := range auctionUsedAllocs {
 			tk.ParticipationKeeper.SetAuctionUsedAllocations(ctx, auction)
@@ -54,7 +55,7 @@ func TestMismatchUsedAllocationsInvariant(t *testing.T) {
 		require.False(t, isValid)
 	})
 
-	t.Run("invalid case", func(t *testing.T) {
+	t.Run("should prevent invalid case", func(t *testing.T) {
 		tk.ParticipationKeeper.SetUsedAllocations(ctx, invalidUsedAllocs)
 		for _, auction := range auctionUsedAllocs {
 			tk.ParticipationKeeper.SetAuctionUsedAllocations(ctx, auction)

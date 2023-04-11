@@ -5,22 +5,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	spntypes "github.com/tendermint/spn/pkg/types"
 	"github.com/tendermint/spn/testutil/sample"
 	"github.com/tendermint/spn/x/launch/types"
 )
 
 func TestMsgEditChain_ValidateBasic(t *testing.T) {
+	// TODO check error types in test
 	launchID := uint64(0)
-
-	msgInvalidMetadataLen := sample.MsgEditChain(r,
-		sample.Address(r),
-		launchID,
-		false,
-		0,
-		false,
-	)
-	msgInvalidMetadataLen.Metadata = sample.Bytes(r, spntypes.MaxMetadataLength+1)
 
 	for _, tc := range []struct {
 		desc  string
@@ -28,7 +19,7 @@ func TestMsgEditChain_ValidateBasic(t *testing.T) {
 		valid bool
 	}{
 		{
-			desc: "valid message",
+			desc: "should validate valid message",
 			msg: sample.MsgEditChain(r,
 				sample.Address(r),
 				launchID,
@@ -39,7 +30,7 @@ func TestMsgEditChain_ValidateBasic(t *testing.T) {
 			valid: true,
 		},
 		{
-			desc: "valid message with new metadata",
+			desc: "should validate valid message with new metadata",
 			msg: sample.MsgEditChain(r,
 				sample.Address(r),
 				launchID,
@@ -50,7 +41,7 @@ func TestMsgEditChain_ValidateBasic(t *testing.T) {
 			valid: true,
 		},
 		{
-			desc: "valid message with new chain ID",
+			desc: "should validate valid message with new chain ID",
 			msg: sample.MsgEditChain(r,
 				sample.Address(r),
 				launchID,
@@ -61,7 +52,7 @@ func TestMsgEditChain_ValidateBasic(t *testing.T) {
 			valid: true,
 		},
 		{
-			desc: "invalid coordinator address",
+			desc: "should prevent validate message with invalid coordinator address",
 			msg: sample.MsgEditChain(r,
 				"invalid",
 				launchID,
@@ -72,7 +63,7 @@ func TestMsgEditChain_ValidateBasic(t *testing.T) {
 			valid: false,
 		},
 		{
-			desc: "no value to edit",
+			desc: "should prevent validate message with no value to edit",
 			msg: sample.MsgEditChain(r,
 				sample.Address(r),
 				launchID,
@@ -82,13 +73,7 @@ func TestMsgEditChain_ValidateBasic(t *testing.T) {
 			),
 			valid: false,
 		},
-		{
-			desc:  "invalid metadata length",
-			msg:   msgInvalidMetadataLen,
-			valid: false,
-		},
 	} {
-		tc := tc
 		t.Run(tc.desc, func(t *testing.T) {
 			err := tc.msg.ValidateBasic()
 			if tc.valid {

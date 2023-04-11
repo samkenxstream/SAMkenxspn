@@ -3,6 +3,7 @@
 PACKAGES=$(shell go list ./...)
 VERSION := $(shell echo $(shell git describe --tags 2> /dev/null || echo "dev-$(shell git describe --always)") | sed 's/^v//')
 SIMAPP = ./app
+DOCKER := $(shell which docker)
 COVER_FILE := coverage.txt
 COVER_HTML_FILE := cover.html
 
@@ -11,17 +12,20 @@ govet:
 	@echo Running go vet...
 	@go vet ./...
 
-FIND_ARGS := -name '*.go' -type f -not -name '*.pb.go'
+FIND_ARGS := -name '*.go' -type f -not -name '*.pb.go' -not -name '*.pb.gw.go'
 
 ## format: Run gofmt and goimports.
 format:
 	@echo Formatting...
-	@find . $(FIND_ARGS) | xargs gofmt -d -s
+	@go install mvdan.cc/gofumpt
+	@go install golang.org/x/tools/cmd/goimports
+	@find . $(FIND_ARGS) | xargs gofumpt -w .
 	@find . $(FIND_ARGS) | xargs goimports -w -local github.com/tendermint/spn
 
 ## lint: Run Golang CI Lint.
 lint:
 	@echo Running gocilint...
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint
 	@golangci-lint run --out-format=tab --issues-exit-code=0
 
 help: Makefile
@@ -59,6 +63,18 @@ bench:
 test: govet test-unit
 
 .PHONY: test test-unit test-race test-cover bench
+
+proto-all: proto-format
+
+protoVer=v0.7
+protoImageName=tendermintdev/sdk-proto-gen:$(protoVer)
+containerProtoFmt=ignite-spn-proto-fmt-$(protoVer)
+
+proto-format:
+	@echo "Formatting Protobuf files"
+	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerProtoFmt}$$"; then docker start -a $(containerProtoFmt); else docker run --name $(containerProtoFmt) -v $(CURDIR):/workspace --workdir /workspace tendermintdev/docker-build-proto \
+		find ./ -not -path "./third_party/*" -name "*.proto" -exec clang-format -i {} \; ; fi
+
 
 SIM_NUM_BLOCKS ?= 500
 SIM_BLOCK_SIZE ?= 100

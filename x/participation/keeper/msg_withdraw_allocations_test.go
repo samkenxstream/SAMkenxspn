@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	fundraisingtypes "github.com/tendermint/fundraising/x/fundraising/types"
@@ -20,7 +21,6 @@ func Test_msgServer_WithdrawAllocations(t *testing.T) {
 		auctioneer          = sample.Address(r)
 		validParticipant    = sample.Address(r)
 		invalidParticipant  = sample.Address(r)
-		auctionSellingCoin  = sample.Coin(r)
 		auctionStartTime    = sdkCtx.BlockTime().Add(time.Hour)
 		auctionEndTime      = sdkCtx.BlockTime().Add(time.Hour * 24 * 7)
 		validWithdrawalTime = auctionStartTime.Add(time.Hour * 10)
@@ -29,8 +29,11 @@ func Test_msgServer_WithdrawAllocations(t *testing.T) {
 
 	params := types.DefaultParams()
 	params.WithdrawalDelay = withdrawalDelay
-	params.AllocationPrice = types.AllocationPrice{Bonded: sdk.NewInt(100)}
+	params.AllocationPrice = types.AllocationPrice{Bonded: sdkmath.NewInt(100)}
 	tk.ParticipationKeeper.SetParams(sdkCtx, params)
+
+	auctionSellingCoin := sample.CoinWithRange(r, params.ParticipationTierList[1].Benefits.MaxBidAmount.Int64(),
+		params.ParticipationTierList[1].Benefits.MaxBidAmount.Int64()+1000)
 
 	// delegate some coins so participant has some allocations to use
 	tk.DelegateN(sdkCtx, r, validParticipant, 100, 10)
@@ -43,29 +46,31 @@ func Test_msgServer_WithdrawAllocations(t *testing.T) {
 	tk.Mint(sdkCtx, auctioneer, sdk.NewCoins(auctionSellingCoin))
 	cancelledAuctionID := tk.CreateFixedPriceAuction(sdkCtx, r, auctioneer, auctionSellingCoin, auctionStartTime, auctionEndTime)
 
-	// validParticipant participates to auctions
-	_, err := ts.ParticipationSrv.Participate(ctx, &types.MsgParticipate{
-		Participant: validParticipant,
-		AuctionID:   auctionID,
-		TierID:      1,
+	t.Run("should allow participation", func(t *testing.T) {
+		_, err := ts.ParticipationSrv.Participate(ctx, &types.MsgParticipate{
+			Participant: validParticipant,
+			AuctionID:   auctionID,
+			TierID:      1,
+		})
+		require.NoError(t, err)
+		_, err = ts.ParticipationSrv.Participate(ctx, &types.MsgParticipate{
+			Participant: validParticipant,
+			AuctionID:   cancelledAuctionID,
+			TierID:      1,
+		})
+		require.NoError(t, err)
 	})
-	require.NoError(t, err)
-	_, err = ts.ParticipationSrv.Participate(ctx, &types.MsgParticipate{
-		Participant: validParticipant,
-		AuctionID:   cancelledAuctionID,
-		TierID:      1,
-	})
-	require.NoError(t, err)
 
-	// cancel auction
-	err = tk.FundraisingKeeper.CancelAuction(sdkCtx, fundraisingtypes.NewMsgCancelAuction(auctioneer, cancelledAuctionID))
-	require.NoError(t, err)
+	t.Run("should allow auction cancel", func(t *testing.T) {
+		err := tk.FundraisingKeeper.CancelAuction(sdkCtx, fundraisingtypes.NewMsgCancelAuction(auctioneer, cancelledAuctionID))
+		require.NoError(t, err)
+	})
 
 	// manually insert entry for invalidParticipant for later test
 	tk.ParticipationKeeper.SetAuctionUsedAllocations(sdkCtx, types.AuctionUsedAllocations{
 		Address:        invalidParticipant,
 		AuctionID:      auctionID,
-		NumAllocations: 1,
+		NumAllocations: sdkmath.OneInt(),
 		Withdrawn:      true, // set withdrawn to true
 	})
 
@@ -92,7 +97,7 @@ func Test_msgServer_WithdrawAllocations(t *testing.T) {
 			blockTime: auctionStartTime,
 		},
 		{
-			name: "auction does not exist",
+			name: "should return auction not found",
 			msg: &types.MsgWithdrawAllocations{
 				Participant: validParticipant,
 				AuctionID:   auctionID + 1000,
@@ -110,7 +115,7 @@ func Test_msgServer_WithdrawAllocations(t *testing.T) {
 			err:       types.ErrAllocationWithdrawalTimeNotReached,
 		},
 		{
-			name: "used allocations not found",
+			name: "should return used allocations not found",
 			msg: &types.MsgWithdrawAllocations{
 				Participant: sample.Address(r),
 				AuctionID:   auctionID,
@@ -165,7 +170,8 @@ func Test_msgServer_WithdrawAllocations(t *testing.T) {
 			// check usedAllocationEntry is correctly decreased
 			postUsedAllocations, found := tk.ParticipationKeeper.GetUsedAllocations(tmpSdkCtx, tt.msg.Participant)
 			require.True(t, found)
-			require.Equal(t, preUsedAllocations.NumAllocations-preAuctionUsedAllocations.NumAllocations, postUsedAllocations.NumAllocations)
+			calculated := preUsedAllocations.NumAllocations.Sub(preAuctionUsedAllocations.NumAllocations)
+			require.True(t, postUsedAllocations.NumAllocations.Equal(calculated), "numAlloc %s not equal to calculated %s", postUsedAllocations.NumAllocations, calculated)
 		})
 	}
 }

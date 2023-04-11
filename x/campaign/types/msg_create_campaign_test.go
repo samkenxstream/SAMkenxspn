@@ -3,23 +3,25 @@ package types_test
 import (
 	"testing"
 
-	spntypes "github.com/tendermint/spn/pkg/types"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkmath "cosmossdk.io/math"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tendermint/spn/testutil/sample"
 	"github.com/tendermint/spn/x/campaign/types"
+	profile "github.com/tendermint/spn/x/profile/types"
 )
 
 func TestMsgCreateCampaign_ValidateBasic(t *testing.T) {
+	invalidCoins := sdk.Coins{sdk.Coin{Denom: "invalid denom", Amount: sdkmath.ZeroInt()}}
+
 	tests := []struct {
 		name string
 		msg  types.MsgCreateCampaign
 		err  error
 	}{
 		{
-			name: "valid message",
+			name: "should allow validation of valid msg",
 			msg: types.MsgCreateCampaign{
 				Coordinator:  sample.Address(r),
 				CampaignName: sample.CampaignName(r),
@@ -28,17 +30,17 @@ func TestMsgCreateCampaign_ValidateBasic(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid address",
+			name: "should prevent validation of msg with invalid address",
 			msg: types.MsgCreateCampaign{
 				Coordinator:  "invalid_address",
 				CampaignName: sample.CampaignName(r),
 				TotalSupply:  sample.TotalSupply(r),
 				Metadata:     sample.Metadata(r, 20),
 			},
-			err: sdkerrors.ErrInvalidAddress,
+			err: profile.ErrInvalidCoordAddress,
 		},
 		{
-			name: "invalid campaign name",
+			name: "should prevent validation of msg with invalid campaign name",
 			msg: types.MsgCreateCampaign{
 				Coordinator:  sample.Address(r),
 				CampaignName: invalidCampaignName,
@@ -48,7 +50,7 @@ func TestMsgCreateCampaign_ValidateBasic(t *testing.T) {
 			err: types.ErrInvalidCampaignName,
 		},
 		{
-			name: "invalid total supply",
+			name: "should prevent validation of msg with invalid total supply",
 			msg: types.MsgCreateCampaign{
 				Coordinator:  sample.Address(r),
 				CampaignName: sample.CampaignName(r),
@@ -56,16 +58,6 @@ func TestMsgCreateCampaign_ValidateBasic(t *testing.T) {
 				Metadata:     sample.Metadata(r, 20),
 			},
 			err: types.ErrInvalidTotalSupply,
-		},
-		{
-			name: "invalid metadata length",
-			msg: types.MsgCreateCampaign{
-				Coordinator:  sample.Address(r),
-				CampaignName: sample.CampaignName(r),
-				TotalSupply:  sample.TotalSupply(r),
-				Metadata:     sample.Metadata(r, spntypes.MaxMetadataLength+1),
-			},
-			err: types.ErrInvalidMetadataLength,
 		},
 	}
 	for _, tt := range tests {

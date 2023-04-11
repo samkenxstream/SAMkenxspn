@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	committypes "github.com/cosmos/ibc-go/v2/modules/core/23-commitment/types"
-	ibctmtypes "github.com/cosmos/ibc-go/v2/modules/light-clients/07-tendermint/types"
+	clienttypes "github.com/cosmos/ibc-go/v6/modules/core/02-client/types"
+	committypes "github.com/cosmos/ibc-go/v6/modules/core/23-commitment/types"
+	ibctmtypes "github.com/cosmos/ibc-go/v6/modules/light-clients/07-tendermint/types"
+	ignterrors "github.com/ignite/modules/pkg/errors"
 	"github.com/tendermint/tendermint/light"
 
 	"github.com/tendermint/spn/pkg/chainid"
-	spnerrors "github.com/tendermint/spn/pkg/errors"
 	launchtypes "github.com/tendermint/spn/x/launch/types"
 	"github.com/tendermint/spn/x/monitoringc/types"
 )
@@ -41,7 +41,7 @@ func (k msgServer) CreateClient(goCtx context.Context, msg *types.MsgCreateClien
 	// convert validator set
 	tmValidatorSet, err := msg.ValidatorSet.ToTendermintValidatorSet()
 	if err != nil {
-		return nil, spnerrors.Criticalf("validated validator can't be converted %s", err.Error())
+		return nil, ignterrors.Criticalf("validated validator can't be converted %s", err.Error())
 	}
 
 	// verify the validator set
@@ -58,7 +58,7 @@ func (k msgServer) CreateClient(goCtx context.Context, msg *types.MsgCreateClien
 	// create the client from IBC keeper
 	tmConsensusState, err := msg.ConsensusState.ToTendermintConsensusState()
 	if err != nil {
-		return nil, spnerrors.Criticalf("validated consensus state can't be converted %s", err.Error())
+		return nil, ignterrors.Criticalf("validated consensus state can't be converted %s", err.Error())
 	}
 	clientID, err := k.clientKeeper.CreateClient(ctx, clientState, &tmConsensusState)
 	if err != nil {

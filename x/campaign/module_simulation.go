@@ -14,27 +14,25 @@ import (
 )
 
 const (
-	defaultWeightMsgCreateCampaign    = 25
-	defaultWeightMsgEditCampaign      = 20
-	defaultWeightMsgUpdateTotalSupply = 20
-	defaultWeightMsgInitializeMainnet = 15
-	defaultWeightMsgAddShares         = 20
-	defaultWeightMsgAddVestingOptions = 20
-	defaultWeightMsgMintVouchers      = 20
-	defaultWeightMsgBurnVouchers      = 20
-	defaultWeightMsgRedeemVouchers    = 20
-	defaultWeightMsgUnredeemVouchers  = 20
+	defaultWeightMsgCreateCampaign           = 25
+	defaultWeightMsgEditCampaign             = 20
+	defaultWeightMsgUpdateTotalSupply        = 20
+	defaultWeightMsgInitializeMainnet        = 15
+	defaultWeightMsgUpdateSpecialAllocations = 20
+	defaultWeightMsgMintVouchers             = 20
+	defaultWeightMsgBurnVouchers             = 20
+	defaultWeightMsgRedeemVouchers           = 20
+	defaultWeightMsgUnredeemVouchers         = 20
 
-	opWeightMsgCreateCampaign    = "op_weight_msg_create_campaign"
-	opWeightMsgEditCampaign      = "op_weight_msg_edit_campaign"
-	opWeightMsgUpdateTotalSupply = "op_weight_msg_update_total_supply"
-	opWeightMsgInitializeMainnet = "op_weight_msg_initialize_mainnet"
-	opWeightMsgAddShares         = "op_weight_msg_add_shares"
-	opWeightMsgAddVestingOptions = "op_weight_msg_add_vesting_options"
-	opWeightMsgMintVouchers      = "op_weight_msg_mint_vouchers"
-	opWeightMsgBurnVouchers      = "op_weight_msg_burn_vouchers"
-	opWeightMsgRedeemVouchers    = "op_weight_msg_redeem_vouchers"
-	opWeightMsgUnredeemVouchers  = "op_weight_msg_unredeem_vouchers"
+	opWeightMsgCreateCampaign           = "op_weight_msg_create_campaign"
+	opWeightMsgEditCampaign             = "op_weight_msg_edit_campaign"
+	opWeightMsgUpdateTotalSupply        = "op_weight_msg_update_total_supply"
+	opWeightMsgInitializeMainnet        = "op_weight_msg_initialize_mainnet"
+	opWeightMsgUpdateSpecialAllocations = "op_weight_msg_update_special_allocations"
+	opWeightMsgMintVouchers             = "op_weight_msg_mint_vouchers"
+	opWeightMsgBurnVouchers             = "op_weight_msg_burn_vouchers"
+	opWeightMsgRedeemVouchers           = "op_weight_msg_redeem_vouchers"
+	opWeightMsgUnredeemVouchers         = "op_weight_msg_unredeem_vouchers"
 
 	// this line is used by starport scaffolding # simapp/module/const
 )
@@ -69,16 +67,15 @@ func (am AppModule) RegisterStoreDecoder(_ sdk.StoreDecoderRegistry) {}
 // WeightedOperations returns the all the gov module operations with their respective weights.
 func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
 	var (
-		weightMsgCreateCampaign    int
-		weightMsgEditCampaign      int
-		weightMsgUpdateTotalSupply int
-		weightMsgInitializeMainnet int
-		weightMsgAddShares         int
-		weightMsgAddVestingOptions int
-		weightMsgMintVouchers      int
-		weightMsgBurnVouchers      int
-		weightMsgRedeemVouchers    int
-		weightMsgUnredeemVouchers  int
+		weightMsgCreateCampaign           int
+		weightMsgEditCampaign             int
+		weightMsgUpdateTotalSupply        int
+		weightMsgInitializeMainnet        int
+		weightMsgUpdateSpecialAllocations int
+		weightMsgMintVouchers             int
+		weightMsgBurnVouchers             int
+		weightMsgRedeemVouchers           int
+		weightMsgUnredeemVouchers         int
 	)
 
 	appParams := simState.AppParams
@@ -103,14 +100,9 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simtyp
 			weightMsgInitializeMainnet = defaultWeightMsgInitializeMainnet
 		},
 	)
-	appParams.GetOrGenerate(cdc, opWeightMsgAddShares, &weightMsgAddShares, nil,
+	appParams.GetOrGenerate(cdc, opWeightMsgUpdateSpecialAllocations, &weightMsgUpdateSpecialAllocations, nil,
 		func(_ *rand.Rand) {
-			weightMsgAddShares = defaultWeightMsgAddShares
-		},
-	)
-	appParams.GetOrGenerate(cdc, opWeightMsgAddVestingOptions, &weightMsgAddVestingOptions, nil,
-		func(_ *rand.Rand) {
-			weightMsgAddVestingOptions = defaultWeightMsgAddVestingOptions
+			weightMsgInitializeMainnet = defaultWeightMsgUpdateSpecialAllocations
 		},
 	)
 	appParams.GetOrGenerate(cdc, opWeightMsgMintVouchers, &weightMsgMintVouchers, nil,
@@ -152,8 +144,8 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simtyp
 			campaignsim.SimulateMsgInitializeMainnet(am.accountKeeper, am.bankKeeper, am.profileKeeper, am.keeper),
 		),
 		simulation.NewWeightedOperation(
-			weightMsgAddShares,
-			campaignsim.SimulateMsgAddShares(am.accountKeeper, am.bankKeeper, am.profileKeeper, am.keeper),
+			weightMsgUpdateSpecialAllocations,
+			campaignsim.SimulateMsgUpdateSpecialAllocations(am.accountKeeper, am.bankKeeper, am.profileKeeper, am.keeper),
 		),
 		simulation.NewWeightedOperation(
 			weightMsgMintVouchers,
@@ -171,11 +163,5 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simtyp
 			weightMsgUnredeemVouchers,
 			campaignsim.SimulateMsgUnredeemVouchers(am.accountKeeper, am.bankKeeper, am.keeper),
 		),
-
-		// disabled: https://github.com/tendermint/spn/issues/774
-		// simulation.NewWeightedOperation(
-		//	weightMsgAddVestingOptions,
-		//	campaignsim.SimulateMsgAddVestingOptions(am.accountKeeper, am.bankKeeper, am.profileKeeper, am.keeper),
-		// ),
 	}
 }

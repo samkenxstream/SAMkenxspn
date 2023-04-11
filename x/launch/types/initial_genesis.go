@@ -1,10 +1,9 @@
 package types
 
 import (
-	"errors"
-
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 )
 
 const HashLength = 64
@@ -30,6 +29,17 @@ func NewGenesisURL(url, hash string) InitialGenesis {
 	}
 }
 
+// NewGenesisConfig returns a InitialGenesis containing a GenesisConfig file
+func NewGenesisConfig(file string) InitialGenesis {
+	return InitialGenesis{
+		Source: &InitialGenesis_GenesisConfig{
+			GenesisConfig: &GenesisConfig{
+				File: file,
+			},
+		},
+	}
+}
+
 // Validate verifies the initial genesis is valid
 func (m InitialGenesis) Validate() error {
 	switch initialGenesis := m.Source.(type) {
@@ -40,6 +50,10 @@ func (m InitialGenesis) Validate() error {
 		}
 		if len(initialGenesis.GenesisURL.Hash) != HashLength {
 			return errors.New("hash must be sha256")
+		}
+	case *InitialGenesis_GenesisConfig:
+		if initialGenesis.GenesisConfig.File == "" {
+			return errors.New("no file provided")
 		}
 	default:
 		return errors.New("unrecognized initial genesis")

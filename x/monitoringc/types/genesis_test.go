@@ -10,36 +10,36 @@ import (
 
 func TestGenesisState_Validate(t *testing.T) {
 	for _, tc := range []struct {
-		desc     string
+		name     string
 		genState *types.GenesisState
 		valid    bool
 	}{
 		{
-			desc:     "default is valid",
+			name:     "should allow valid default genesis",
 			genState: types.DefaultGenesis(),
 			valid:    true,
 		},
 		{
-			desc: "valid genesis state",
+			name: "should allow valid genesis state",
 			genState: &types.GenesisState{
 				PortId: types.PortID,
-				VerifiedClientIDList: []types.VerifiedClientID{
+				VerifiedClientIDs: []types.VerifiedClientID{
 					{LaunchID: 0, ClientIDs: []string{"0"}},
 					{LaunchID: 1, ClientIDs: []string{"1", "2"}},
 				},
-				ProviderClientIDList: []types.ProviderClientID{
+				ProviderClientIDs: []types.ProviderClientID{
 					{LaunchID: 0, ClientID: "0"},
 					{LaunchID: 1, ClientID: "2"},
 				},
-				LaunchIDFromVerifiedClientIDList: []types.LaunchIDFromVerifiedClientID{
+				LaunchIDsFromVerifiedClientID: []types.LaunchIDFromVerifiedClientID{
 					{LaunchID: 0, ClientID: "0"},
 					{LaunchID: 1, ClientID: "1"},
 				},
-				LaunchIDFromChannelIDList: []types.LaunchIDFromChannelID{
+				LaunchIDsFromChannelID: []types.LaunchIDFromChannelID{
 					{LaunchID: 0, ChannelID: "0"},
 					{LaunchID: 1, ChannelID: "1"},
 				},
-				MonitoringHistoryList: []types.MonitoringHistory{
+				MonitoringHistories: []types.MonitoringHistory{
 					{
 						LaunchID: 0,
 					},
@@ -52,17 +52,17 @@ func TestGenesisState_Validate(t *testing.T) {
 			valid: true,
 		},
 		{
-			desc: "invalid portID",
+			name: "should prevent invalid portID",
 			genState: &types.GenesisState{
 				PortId: "",
 			},
 			valid: false,
 		},
 		{
-			desc: "duplicated verifiedClientID",
+			name: "should prevent duplicated verifiedClientID",
 			genState: &types.GenesisState{
 				PortId: types.PortID,
-				VerifiedClientIDList: []types.VerifiedClientID{
+				VerifiedClientIDs: []types.VerifiedClientID{
 					{
 						LaunchID:  0,
 						ClientIDs: []string{"0"},
@@ -76,10 +76,10 @@ func TestGenesisState_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			desc: "duplicated clientID",
+			name: "should prevent duplicated clientID",
 			genState: &types.GenesisState{
 				PortId: types.PortID,
-				VerifiedClientIDList: []types.VerifiedClientID{
+				VerifiedClientIDs: []types.VerifiedClientID{
 					{
 						LaunchID:  0,
 						ClientIDs: []string{"0", "0"},
@@ -89,16 +89,16 @@ func TestGenesisState_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			desc: "duplicated providerClientID",
+			name: "should prevent duplicated providerClientID",
 			genState: &types.GenesisState{
 				PortId: types.PortID,
-				VerifiedClientIDList: []types.VerifiedClientID{
+				VerifiedClientIDs: []types.VerifiedClientID{
 					{
 						LaunchID:  0,
 						ClientIDs: []string{"0"},
 					},
 				},
-				ProviderClientIDList: []types.ProviderClientID{
+				ProviderClientIDs: []types.ProviderClientID{
 					{
 						LaunchID: 0,
 						ClientID: "0",
@@ -112,16 +112,16 @@ func TestGenesisState_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			desc: "duplicated launchIDFromVerifiedClientID",
+			name: "should prevent duplicated launchIDFromVerifiedClientID",
 			genState: &types.GenesisState{
 				PortId: types.PortID,
-				VerifiedClientIDList: []types.VerifiedClientID{
+				VerifiedClientIDs: []types.VerifiedClientID{
 					{
 						LaunchID:  0,
 						ClientIDs: []string{"0"},
 					},
 				},
-				LaunchIDFromVerifiedClientIDList: []types.LaunchIDFromVerifiedClientID{
+				LaunchIDsFromVerifiedClientID: []types.LaunchIDFromVerifiedClientID{
 					{
 						ClientID: "0",
 						LaunchID: 0,
@@ -135,18 +135,18 @@ func TestGenesisState_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			desc: "provider client id without valid client id",
+			name: "should prevent provider client id without valid client id",
 			genState: &types.GenesisState{
 				PortId: types.PortID,
-				VerifiedClientIDList: []types.VerifiedClientID{
+				VerifiedClientIDs: []types.VerifiedClientID{
 					{LaunchID: 0, ClientIDs: []string{"0"}},
 					{LaunchID: 1, ClientIDs: []string{"1", "2"}},
 				},
-				ProviderClientIDList: []types.ProviderClientID{
+				ProviderClientIDs: []types.ProviderClientID{
 					{LaunchID: 0, ClientID: "0"},
 					{LaunchID: 1, ClientID: "3"},
 				},
-				LaunchIDFromVerifiedClientIDList: []types.LaunchIDFromVerifiedClientID{
+				LaunchIDsFromVerifiedClientID: []types.LaunchIDFromVerifiedClientID{
 					{LaunchID: 0, ClientID: "0"},
 					{LaunchID: 1, ClientID: "2"},
 				},
@@ -155,18 +155,18 @@ func TestGenesisState_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			desc: "launch id from verified client id without valid client id",
+			name: "should prevent launch id from verified client id without valid client id",
 			genState: &types.GenesisState{
 				PortId: types.PortID,
-				VerifiedClientIDList: []types.VerifiedClientID{
+				VerifiedClientIDs: []types.VerifiedClientID{
 					{LaunchID: 0, ClientIDs: []string{"0"}},
 					{LaunchID: 1, ClientIDs: []string{"1", "2"}},
 				},
-				ProviderClientIDList: []types.ProviderClientID{
+				ProviderClientIDs: []types.ProviderClientID{
 					{LaunchID: 0, ClientID: "0"},
 					{LaunchID: 1, ClientID: "2"},
 				},
-				LaunchIDFromVerifiedClientIDList: []types.LaunchIDFromVerifiedClientID{
+				LaunchIDsFromVerifiedClientID: []types.LaunchIDFromVerifiedClientID{
 					{LaunchID: 0, ClientID: "1"},
 					{LaunchID: 1, ClientID: "1"},
 				},
@@ -175,10 +175,10 @@ func TestGenesisState_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			desc: "duplicated launchIDFromChannelID",
+			name: "should prevent duplicated launchIDFromChannelID",
 			genState: &types.GenesisState{
 				PortId: types.PortID,
-				LaunchIDFromChannelIDList: []types.LaunchIDFromChannelID{
+				LaunchIDsFromChannelID: []types.LaunchIDFromChannelID{
 					{
 						ChannelID: "0",
 					},
@@ -190,10 +190,10 @@ func TestGenesisState_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			desc: "duplicated monitoringHistory",
+			name: "should prevent duplicated monitoringHistory",
 			genState: &types.GenesisState{
 				PortId: types.PortID,
-				MonitoringHistoryList: []types.MonitoringHistory{
+				MonitoringHistories: []types.MonitoringHistory{
 					{
 						LaunchID: 0,
 					},
@@ -206,7 +206,7 @@ func TestGenesisState_Validate(t *testing.T) {
 		},
 		// this line is used by starport scaffolding # types/genesis/testcase
 	} {
-		t.Run(tc.desc, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			err := tc.genState.Validate()
 			if tc.valid {
 				require.NoError(t, err)

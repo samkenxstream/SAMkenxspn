@@ -3,6 +3,7 @@ package sample
 import (
 	"math/rand"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	spntypes "github.com/tendermint/spn/pkg/types"
@@ -23,13 +24,13 @@ func SpecialAllocations(r *rand.Rand) campaign.SpecialAllocations {
 func ShareVestingOptions(r *rand.Rand) campaign.ShareVestingOptions {
 	// use vesting shares as total shares
 	vestingShares := Shares(r)
-	return *campaign.NewShareDelayedVesting(vestingShares, vestingShares, Duration(r).Microseconds())
+	return *campaign.NewShareDelayedVesting(vestingShares, vestingShares, Time(r))
 }
 
 // Voucher returns a sample voucher structure
 func Voucher(r *rand.Rand, campaignID uint64) sdk.Coin {
 	denom := campaign.VoucherDenom(campaignID, AlphaString(r, 5))
-	return sdk.NewCoin(denom, sdk.NewInt(int64(r.Intn(10000)+1)))
+	return sdk.NewCoin(denom, sdkmath.NewInt(int64(r.Intn(10000)+1)))
 }
 
 // Vouchers returns a sample vouchers structure
@@ -39,26 +40,7 @@ func Vouchers(r *rand.Rand, campaignID uint64) sdk.Coins {
 
 // CustomShareVestingOptions returns a sample ShareVestingOptions with shares
 func CustomShareVestingOptions(r *rand.Rand, shares campaign.Shares) campaign.ShareVestingOptions {
-	return *campaign.NewShareDelayedVesting(shares, shares, Duration(r).Microseconds())
-}
-
-// MainnetVestingAccount returns a sample MainnetVestingAccount
-func MainnetVestingAccount(r *rand.Rand, campaignID uint64, address string) campaign.MainnetVestingAccount {
-	return MainnetVestingAccountWithShares(r, campaignID, address, Shares(r))
-}
-
-// MainnetVestingAccountWithShares returns a sample MainnetVestingAccount with custom shares
-func MainnetVestingAccountWithShares(
-	r *rand.Rand,
-	campaignID uint64,
-	address string,
-	shares campaign.Shares,
-) campaign.MainnetVestingAccount {
-	return campaign.MainnetVestingAccount{
-		CampaignID:     campaignID,
-		Address:        address,
-		VestingOptions: CustomShareVestingOptions(r, shares),
-	}
+	return *campaign.NewShareDelayedVesting(shares, shares, Time(r))
 }
 
 // CampaignName returns a sample campaign name
@@ -112,11 +94,12 @@ func CampaignParams(r *rand.Rand) campaign.Params {
 	// no point in randomizing these values, using defaults
 	minTotalSupply := campaign.DefaultMinTotalSupply
 	maxTotalSupply := campaign.DefaultMaxTotalSupply
+	maxMetadataLength := campaign.DefaultMaxMetadataLength
 
 	// assign random small amount of staking denom
 	campaignCreationFee := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, r.Int63n(100)+1))
 
-	return campaign.NewParams(minTotalSupply, maxTotalSupply, campaignCreationFee)
+	return campaign.NewParams(minTotalSupply, maxTotalSupply, campaignCreationFee, maxMetadataLength)
 }
 
 // CampaignGenesisState returns a sample genesis state for the campaign module
@@ -124,12 +107,12 @@ func CampaignGenesisState(r *rand.Rand) campaign.GenesisState {
 	campaign1, campaign2 := Campaign(r, 0), Campaign(r, 1)
 
 	return campaign.GenesisState{
-		CampaignList: []campaign.Campaign{
+		Campaigns: []campaign.Campaign{
 			campaign1,
 			campaign2,
 		},
 		CampaignCounter: 2,
-		CampaignChainsList: []campaign.CampaignChains{
+		CampaignChains: []campaign.CampaignChains{
 			{
 				CampaignID: 0,
 				Chains:     []uint64{0, 1},
@@ -143,22 +126,17 @@ func CampaignGenesisState(r *rand.Rand) campaign.GenesisState {
 // CampaignGenesisStateWithAccounts returns a sample genesis state for the campaign module that includes accounts
 func CampaignGenesisStateWithAccounts(r *rand.Rand) campaign.GenesisState {
 	genState := CampaignGenesisState(r)
-	genState.MainnetAccountList = make([]campaign.MainnetAccount, 0)
-	genState.MainnetVestingAccountList = make([]campaign.MainnetVestingAccount, 0)
+	genState.MainnetAccounts = make([]campaign.MainnetAccount, 0)
 
-	for i, c := range genState.CampaignList {
+	for i, c := range genState.Campaigns {
 		for j := 0; j < 5; j++ {
 			mainnetAccount := MainnetAccount(r, c.CampaignID, Address(r))
-			mainnetVestingAccount := MainnetVestingAccount(r, c.CampaignID, Address(r))
-			genState.MainnetAccountList = append(genState.MainnetAccountList, mainnetAccount)
-			genState.MainnetVestingAccountList = append(genState.MainnetVestingAccountList, mainnetVestingAccount)
+			genState.MainnetAccounts = append(genState.MainnetAccounts, mainnetAccount)
 
 			// increase campaign allocated shares accordingly
 			c.AllocatedShares = campaign.IncreaseShares(c.AllocatedShares, mainnetAccount.Shares)
-			shares, _ := mainnetVestingAccount.GetTotalShares()
-			c.AllocatedShares = campaign.IncreaseShares(c.AllocatedShares, shares)
 		}
-		genState.CampaignList[i] = c
+		genState.Campaigns[i] = c
 	}
 
 	return genState

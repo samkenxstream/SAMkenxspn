@@ -33,6 +33,31 @@ func FindAccount(accs []simtypes.Account, address string) (simtypes.Account, err
 	return simAccount, nil
 }
 
+// RandomAccWithBalance returns random account with the desired available balance
+func RandomAccWithBalance(ctx sdk.Context, r *rand.Rand,
+	bk types.BankKeeper,
+	accs []simtypes.Account,
+	desired sdk.Coins,
+) (simtypes.Account, sdk.Coins, bool) {
+	// Randomize the set
+	r.Shuffle(len(accs), func(i, j int) {
+		accs[i], accs[j] = accs[j], accs[i]
+	})
+
+	for _, acc := range accs {
+		balances := bk.GetAllBalances(ctx, acc.Address)
+		if len(balances) == 0 {
+			continue
+		}
+
+		if balances.IsAllGTE(desired) {
+			return acc, balances, true
+		}
+	}
+
+	return simtypes.Account{}, sdk.NewCoins(), false
+}
+
 // FindCoordinatorCampaign finds a campaign associated with a coordinator
 // and returns if it is associated with a chain
 func FindCoordinatorCampaign(
@@ -108,7 +133,6 @@ func FindRandomChain(
 	launchTriggered,
 	noMainnet bool,
 ) (chain types.Chain, found bool) {
-
 	chains := k.GetAllChain(ctx)
 	r.Shuffle(len(chains), func(i, j int) {
 		chains[i], chains[j] = chains[j], chains[i]
@@ -138,7 +162,6 @@ func FindRandomRequest(
 	ctx sdk.Context,
 	k keeper.Keeper,
 ) (request types.Request, found bool) {
-
 	// Select a random request without launch triggered
 	requests := k.GetAllRequest(ctx)
 	r.Shuffle(len(requests), func(i, j int) {

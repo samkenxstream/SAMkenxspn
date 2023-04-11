@@ -1,10 +1,10 @@
 package types
 
 import (
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	spntypes "github.com/tendermint/spn/pkg/types"
+	profile "github.com/tendermint/spn/x/profile/types"
 )
 
 const TypeMsgEditChain = "edit_chain"
@@ -51,17 +51,11 @@ func (msg *MsgEditChain) GetSignBytes() []byte {
 func (msg *MsgEditChain) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Coordinator)
 	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid creator address (%s)", err)
+		return sdkerrors.Wrap(profile.ErrInvalidCoordAddress, err.Error())
 	}
 
 	if len(msg.Metadata) == 0 && !msg.SetCampaignID {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "no value to edit")
-	}
-
-	// TODO parameterize
-	if len(msg.Metadata) > spntypes.MaxMetadataLength {
-		return sdkerrors.Wrapf(ErrInvalidMetadataLength, "data length %d is greater than maximum %d",
-			len(msg.Metadata), spntypes.MaxMetadataLength)
+		return sdkerrors.Wrap(ErrCannotUpdateChain, "no value to edit")
 	}
 
 	return nil

@@ -16,12 +16,14 @@ import (
 )
 
 func TestMsgEditChain(t *testing.T) {
-	sdkCtx, tk, ts := testkeeper.NewTestSetup(t)
-	ctx := sdk.WrapSDKContext(sdkCtx)
-	coordAddress := sample.Address(r)
-	coordAddress2 := sample.Address(r)
-	coordNoExist := sample.Address(r)
-	launchIDNoExist := uint64(1000)
+	var (
+		coordAddress    = sample.Address(r)
+		coordAddress2   = sample.Address(r)
+		coordNoExist    = sample.Address(r)
+		launchIDNoExist = uint64(1000)
+		sdkCtx, tk, ts  = testkeeper.NewTestSetup(t)
+		ctx             = sdk.WrapSDKContext(sdkCtx)
+	)
 
 	// Create coordinators
 	msgCreateCoordinator := sample.MsgCreateCoordinator(coordAddress)
@@ -76,13 +78,24 @@ func TestMsgEditChain(t *testing.T) {
 	err = tk.CampaignKeeper.AddChainToCampaign(sdkCtx, campaignDuplicateChain, launchID2)
 	require.NoError(t, err)
 
+	// create message with an invalid metadata length
+	msgEditChainInvalidMetadata := sample.MsgEditChain(r,
+		coordAddress,
+		launchID,
+		true,
+		validCampaignID,
+		false,
+	)
+	maxMetadataLength := tk.LaunchKeeper.MaxMetadataLength(sdkCtx)
+	msgEditChainInvalidMetadata.Metadata = sample.Metadata(r, maxMetadataLength+1)
+
 	for _, tc := range []struct {
 		name string
 		msg  types.MsgEditChain
 		err  error
 	}{
 		{
-			name: "set campaign ID",
+			name: "should allow setting a campaign ID",
 			msg: sample.MsgEditChain(r,
 				coordAddress,
 				launchID,
@@ -92,7 +105,7 @@ func TestMsgEditChain(t *testing.T) {
 			),
 		},
 		{
-			name: "edit metadata",
+			name: "should allow editing metadata",
 			msg: sample.MsgEditChain(r,
 				coordAddress,
 				launchID,
@@ -102,7 +115,7 @@ func TestMsgEditChain(t *testing.T) {
 			),
 		},
 		{
-			name: "non existent launch id",
+			name: "should prevent editing chain from non existent launch id",
 			msg: sample.MsgEditChain(r,
 				coordAddress,
 				launchIDNoExist,
@@ -113,7 +126,7 @@ func TestMsgEditChain(t *testing.T) {
 			err: types.ErrChainNotFound,
 		},
 		{
-			name: "non existent coordinator",
+			name: "should prevent editing chain with non existent coordinator",
 			msg: sample.MsgEditChain(r,
 				coordNoExist,
 				launchID,
@@ -124,7 +137,7 @@ func TestMsgEditChain(t *testing.T) {
 			err: profiletypes.ErrCoordAddressNotFound,
 		},
 		{
-			name: "invalid coordinator",
+			name: "should prevent editing chain with invalid coordinator",
 			msg: sample.MsgEditChain(r,
 				coordAddress2,
 				launchID,
@@ -135,7 +148,7 @@ func TestMsgEditChain(t *testing.T) {
 			err: profiletypes.ErrCoordInvalid,
 		},
 		{
-			name: "chain already has campaign",
+			name: "should prevent setting campaign id for chain with a campaign",
 			msg: sample.MsgEditChain(r,
 				coordAddress,
 				launchIDHasCampaign,
@@ -146,7 +159,7 @@ func TestMsgEditChain(t *testing.T) {
 			err: types.ErrChainHasCampaign,
 		},
 		{
-			name: "campaign does not exist",
+			name: "should prevent setting campaign id where campaign does not exist",
 			msg: sample.MsgEditChain(r,
 				coordAddress,
 				launchID2,
@@ -157,7 +170,7 @@ func TestMsgEditChain(t *testing.T) {
 			err: campaigntypes.ErrCampaignNotFound,
 		},
 		{
-			name: "campaign has a different coordinator",
+			name: "should prevent setting campaign id where campaign has a different coordinator",
 			msg: sample.MsgEditChain(r,
 				coordAddress,
 				launchID2,
@@ -168,7 +181,7 @@ func TestMsgEditChain(t *testing.T) {
 			err: profiletypes.ErrCoordInvalid,
 		},
 		{
-			name: "campaign chain entry is duplicated",
+			name: "should prevent setting campaign id where campaign chain entry is duplicated",
 			msg: sample.MsgEditChain(r,
 				coordAddress,
 				launchID2,
@@ -177,6 +190,11 @@ func TestMsgEditChain(t *testing.T) {
 				false,
 			),
 			err: types.ErrAddChainToCampaign,
+		},
+		{
+			name: "should prevent edit a chain with invalid metadata length",
+			msg:  msgEditChainInvalidMetadata,
+			err:  types.ErrInvalidMetadataLength,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -203,7 +221,7 @@ func TestMsgEditChain(t *testing.T) {
 			// Unchanged values
 			require.EqualValues(t, previousChain.CoordinatorID, chain.CoordinatorID)
 			require.EqualValues(t, previousChain.CreatedAt, chain.CreatedAt)
-			require.EqualValues(t, previousChain.LaunchTimestamp, chain.LaunchTimestamp)
+			require.EqualValues(t, previousChain.LaunchTime, chain.LaunchTime)
 			require.EqualValues(t, previousChain.LaunchTriggered, chain.LaunchTriggered)
 
 			if len(tc.msg.Metadata) > 0 {

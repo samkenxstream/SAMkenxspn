@@ -102,14 +102,15 @@ func UnknownRequestTypeInvariant(k Keeper) sdk.Invariant {
 				*types.RequestContent_VestingAccount,
 				*types.RequestContent_AccountRemoval,
 				*types.RequestContent_GenesisValidator,
-				*types.RequestContent_ValidatorRemoval:
+				*types.RequestContent_ValidatorRemoval,
+				*types.RequestContent_ParamChange:
 			default:
 				return sdk.FormatInvariant(
 					types.ModuleName, unknownRequestTypeRoute,
 					"unknown request content type",
 				), true
 			}
-			if err := request.Content.Validate(); err != nil {
+			if err := request.Content.Validate(request.LaunchID); err != nil {
 				return sdk.FormatInvariant(
 					types.ModuleName, unknownRequestTypeRoute,
 					"invalid request",

@@ -1,8 +1,8 @@
 package types
 
 import (
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 const TypeMsgSetRewards = "set_rewards"
@@ -41,14 +41,14 @@ func (msg *MsgSetRewards) GetSignBytes() []byte {
 
 func (msg *MsgSetRewards) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Provider); err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid provider address (%s)", err)
+		return sdkerrors.Wrap(ErrInvalidProviderAddress, err.Error())
 	}
 	if err := msg.Coins.Validate(); err != nil {
-		return sdkerrors.Wrapf(ErrInvalidRewardPoolCoins, "invalid reward pool coins (%s)", err)
+		return sdkerrors.Wrap(ErrInvalidRewardPoolCoins, err.Error())
 	}
 
 	if msg.LastRewardHeight < 0 {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "last reward height must be non-negative")
+		return sdkerrors.Wrap(ErrInvalidRewardHeight, "last reward height must be non-negative")
 	}
 
 	return nil

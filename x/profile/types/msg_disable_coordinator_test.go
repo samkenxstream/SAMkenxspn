@@ -3,7 +3,6 @@ package types_test
 import (
 	"testing"
 
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tendermint/spn/testutil/sample"
@@ -17,13 +16,14 @@ func TestMsgDisableCoordinator_ValidateBasic(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "invalid address",
+			name: "should prevent validate invalid coordinator address",
 			msg: profile.MsgDisableCoordinator{
 				Address: "invalid address",
 			},
-			err: sdkerrors.ErrInvalidAddress,
-		}, {
-			name: "valid address",
+			err: profile.ErrInvalidCoordAddress,
+		},
+		{
+			name: "should validate valid message",
 			msg: profile.MsgDisableCoordinator{
 				Address: sample.Address(r),
 			},

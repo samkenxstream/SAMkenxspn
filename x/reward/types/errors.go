@@ -3,7 +3,7 @@ package types
 // DONTCOVER
 
 import (
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "cosmossdk.io/errors"
 )
 
 var (
@@ -13,4 +13,7 @@ var (
 	ErrRewardPoolClosed       = sdkerrors.Register(ModuleName, 5, "reward pool is closed")
 	ErrInvalidSignatureCounts = sdkerrors.Register(ModuleName, 6, "invalid signature counts")
 	ErrInvalidLastBlockHeight = sdkerrors.Register(ModuleName, 7, "invalid last block height")
+	ErrInvalidRewardHeight    = sdkerrors.Register(ModuleName, 8, "invalid reward height")
+	ErrInvalidProviderAddress = sdkerrors.Register(ModuleName, 9, "invalid provider address")
+	ErrInsufficientFunds      = sdkerrors.Register(ModuleName, 10, "insufficient funds")
 )

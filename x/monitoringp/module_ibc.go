@@ -3,13 +3,13 @@ package monitoringp
 import (
 	"fmt"
 
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	porttypes "github.com/cosmos/ibc-go/v2/modules/core/05-port/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	ibcexported "github.com/cosmos/ibc-go/v2/modules/core/exported"
+	channeltypes "github.com/cosmos/ibc-go/v6/modules/core/04-channel/types"
+	porttypes "github.com/cosmos/ibc-go/v6/modules/core/05-port/types"
+	host "github.com/cosmos/ibc-go/v6/modules/core/24-host"
+	ibcexported "github.com/cosmos/ibc-go/v6/modules/core/exported"
 
 	spntypes "github.com/tendermint/spn/pkg/types"
 	"github.com/tendermint/spn/x/monitoringp/types"
@@ -25,38 +25,33 @@ func (am AppModule) OnChanOpenInit(
 	_ *capabilitytypes.Capability,
 	_ channeltypes.Counterparty,
 	_ string,
-) error {
-	return sdkerrors.Wrap(types.ErrInvalidHandshake, "IBC handshake must be initiated by the consumer")
+) (string, error) {
+	return "", sdkerrors.Wrap(types.ErrInvalidHandshake, "IBC handshake must be initiated by the consumer")
 }
 
 // OnChanOpenTry implements the IBCModule interface
 func (am AppModule) OnChanOpenTry(
 	ctx sdk.Context,
 	order channeltypes.Order,
-	_ []string,
+	connectionHops []string,
 	portID,
 	channelID string,
 	chanCap *capabilitytypes.Capability,
 	_ channeltypes.Counterparty,
-	version,
 	counterpartyVersion string,
-) error {
+) (string, error) {
 	if order != channeltypes.ORDERED {
-		return sdkerrors.Wrapf(channeltypes.ErrInvalidChannelOrdering, "expected %s channel, got %s ", channeltypes.ORDERED, order)
+		return "", sdkerrors.Wrapf(channeltypes.ErrInvalidChannelOrdering, "expected %s channel, got %s ", channeltypes.ORDERED, order)
 	}
 
 	// Require portID is the portID module is bound to
 	boundPort := am.keeper.GetPort(ctx)
 	if boundPort != portID {
-		return sdkerrors.Wrapf(porttypes.ErrInvalidPort, "invalid port: %s, expected %s", portID, boundPort)
-	}
-
-	if version != types.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got: %s, expected %s", version, types.Version)
+		return "", sdkerrors.Wrapf(porttypes.ErrInvalidPort, "invalid port: %s, expected %s", portID, boundPort)
 	}
 
 	if counterpartyVersion != types.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: got: %s, expected %s", counterpartyVersion, types.Version)
+		return "", sdkerrors.Wrapf(types.ErrInvalidVersion, "got: %s, expected %s", counterpartyVersion, types.Version)
 	}
 
 	// Module may have already claimed capability in OnChanOpenInit in the case of crossing hellos
@@ -66,16 +61,23 @@ func (am AppModule) OnChanOpenTry(
 	if !am.keeper.AuthenticateCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)) {
 		// Only claim channel capability passed back by IBC module if we do not already own it
 		if err := am.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	// Check if the right consumer client ID is used
-	if err := am.keeper.VerifyClientIDFromChannelID(ctx, channelID); err != nil {
-		return sdkerrors.Wrap(types.ErrInvalidHandshake, err.Error())
+	if len(connectionHops) != 1 {
+		return "", sdkerrors.Wrap(
+			channeltypes.ErrTooManyConnectionHops,
+			"must have direct connection to consumer chain",
+		)
 	}
 
-	return nil
+	// Check if the right consumer client ID is used
+	if err := am.keeper.VerifyClientIDFromConnID(ctx, connectionHops[0]); err != nil {
+		return "", sdkerrors.Wrap(types.ErrInvalidHandshake, err.Error())
+	}
+
+	return types.Version, nil
 }
 
 // OnChanOpenAck implements the IBCModule interface
@@ -83,10 +85,10 @@ func (am AppModule) OnChanOpenAck(
 	_ sdk.Context,
 	_,
 	_,
+	_,
 	_ string,
 ) error {
 	return sdkerrors.Wrap(types.ErrInvalidHandshake, "IBC handshake must be initiated by the consumer")
-
 }
 
 // OnChanOpenConfirm implements the IBCModule interface
@@ -110,7 +112,7 @@ func (am AppModule) OnChanCloseInit(
 	_ string,
 ) error {
 	// Disallow user-initiated channel closing for channels
-	return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "user cannot close channel")
+	return sdkerrors.Wrap(types.ErrCannotCloseChannel, "user cannot close channel")
 }
 
 // OnChanCloseConfirm implements the IBCModule interface
@@ -134,7 +136,7 @@ func (am AppModule) OnRecvPacket(
 
 	var modulePacketData spntypes.MonitoringPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(modulePacket.GetData(), &modulePacketData); err != nil {
-		return channeltypes.NewErrorAcknowledgement(sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal packet data: %s", err.Error()).Error())
+		return channeltypes.NewErrorAcknowledgement(sdkerrors.Wrap(types.ErrJSONUnmarshal, err.Error()))
 	}
 
 	// Dispatch packet
@@ -142,12 +144,12 @@ func (am AppModule) OnRecvPacket(
 	case *spntypes.MonitoringPacketData_MonitoringPacket:
 		packetAck, err := am.keeper.OnRecvMonitoringPacket(ctx, modulePacket, *packet.MonitoringPacket)
 		if err != nil {
-			ack = channeltypes.NewErrorAcknowledgement(err.Error())
+			ack = channeltypes.NewErrorAcknowledgement(err)
 		} else {
 			// Encode packet acknowledgment
 			packetAckBytes, err := types.ModuleCdc.MarshalJSON(&packetAck)
 			if err != nil {
-				return channeltypes.NewErrorAcknowledgement(sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error()).Error())
+				return channeltypes.NewErrorAcknowledgement(sdkerrors.Wrap(types.ErrJSONMarshal, err.Error()))
 			}
 			ack = channeltypes.NewResultAcknowledgement(sdk.MustSortJSON(packetAckBytes))
 		}
@@ -160,8 +162,8 @@ func (am AppModule) OnRecvPacket(
 		)
 		// this line is used by starport scaffolding # ibc/packet/module/recv
 	default:
-		errMsg := fmt.Sprintf("unrecognized %s packet type: %T", types.ModuleName, packet)
-		return channeltypes.NewErrorAcknowledgement(errMsg)
+		err := sdkerrors.Wrapf(types.ErrUnrecognizedPacketType, "packet type: %T", packet)
+		return channeltypes.NewErrorAcknowledgement(err)
 	}
 
 	// NOTE: acknowledgement will be written synchronously during IBC handler execution.
@@ -177,14 +179,14 @@ func (am AppModule) OnAcknowledgementPacket(
 ) error {
 	var ack channeltypes.Acknowledgement
 	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal packet acknowledgement: %v", err)
+		return sdkerrors.Wrap(types.ErrJSONUnmarshal, err.Error())
 	}
 
 	// this line is used by starport scaffolding # oracle/packet/module/ack
 
 	var modulePacketData spntypes.MonitoringPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(modulePacket.GetData(), &modulePacketData); err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal packet data: %s", err.Error())
+		return sdkerrors.Wrap(types.ErrJSONUnmarshal, err.Error())
 	}
 
 	var eventType string
@@ -199,8 +201,7 @@ func (am AppModule) OnAcknowledgementPacket(
 		eventType = types.EventTypeMonitoringPacket
 		// this line is used by starport scaffolding # ibc/packet/module/ack
 	default:
-		errMsg := fmt.Sprintf("unrecognized %s packet type: %T", types.ModuleName, packet)
-		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		return sdkerrors.Wrapf(types.ErrUnrecognizedPacketType, "packet type: %T", packet)
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -239,7 +240,7 @@ func (am AppModule) OnTimeoutPacket(
 ) error {
 	var modulePacketData spntypes.MonitoringPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(modulePacket.GetData(), &modulePacketData); err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal packet data: %s", err.Error())
+		return sdkerrors.Wrap(types.ErrJSONUnmarshal, err.Error())
 	}
 
 	// Dispatch packet
@@ -251,21 +252,8 @@ func (am AppModule) OnTimeoutPacket(
 		}
 		// this line is used by starport scaffolding # ibc/packet/module/timeout
 	default:
-		errMsg := fmt.Sprintf("unrecognized %s packet type: %T", types.ModuleName, packet)
-		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		return sdkerrors.Wrapf(types.ErrUnrecognizedPacketType, "packet type: %T", packet)
 	}
 
 	return nil
-}
-
-// NegotiateAppVersion implements the IBCModule interface
-func (am AppModule) NegotiateAppVersion(
-	_ sdk.Context,
-	_ channeltypes.Order,
-	_,
-	_ string,
-	_ channeltypes.Counterparty,
-	_ string,
-) (version string, err error) {
-	return types.Version, nil
 }

@@ -3,8 +3,8 @@ package types_test
 import (
 	"testing"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/stretchr/testify/require"
 
 	"github.com/tendermint/spn/testutil/sample"
@@ -12,22 +12,15 @@ import (
 )
 
 func TestMsgBurnVouchers_ValidateBasic(t *testing.T) {
+	invalidCoins := sdk.Coins{sdk.Coin{Denom: "invalid denom", Amount: sdkmath.ZeroInt()}}
+
 	tests := []struct {
 		name string
 		msg  types.MsgBurnVouchers
 		err  error
 	}{
 		{
-			name: "invalid address",
-			msg: types.MsgBurnVouchers{
-				Sender:     "invalid_address",
-				CampaignID: 0,
-				Vouchers:   sample.Coins(r),
-			},
-			err: sdkerrors.ErrInvalidAddress,
-		},
-		{
-			name: "valid message",
+			name: "should allow validation of valid msg",
 			msg: types.MsgBurnVouchers{
 				Sender:     sample.Address(r),
 				CampaignID: 0,
@@ -35,7 +28,16 @@ func TestMsgBurnVouchers_ValidateBasic(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid vouchers",
+			name: "should prevent validation of msg with invalid address",
+			msg: types.MsgBurnVouchers{
+				Sender:     "invalid_address",
+				CampaignID: 0,
+				Vouchers:   sample.Coins(r),
+			},
+			err: types.ErrInvalidVoucherAddress,
+		},
+		{
+			name: "should prevent validation of msg with invalid vouchers",
 			msg: types.MsgBurnVouchers{
 				Sender:     sample.Address(r),
 				CampaignID: 0,
@@ -44,7 +46,7 @@ func TestMsgBurnVouchers_ValidateBasic(t *testing.T) {
 			err: types.ErrInvalidVouchers,
 		},
 		{
-			name: "empty vouchers",
+			name: "should prevent validation of msg with empty vouchers",
 			msg: types.MsgBurnVouchers{
 				Sender:     sample.Address(r),
 				CampaignID: 0,
@@ -53,12 +55,12 @@ func TestMsgBurnVouchers_ValidateBasic(t *testing.T) {
 			err: types.ErrInvalidVouchers,
 		},
 		{
-			name: "vouchers don't match to campaign",
+			name: "should prevent validation of msg with vouchers not matching campaign",
 			msg: types.MsgBurnVouchers{
 				Sender:     sample.Address(r),
 				CampaignID: 0,
 				Vouchers: sdk.NewCoins(
-					sdk.NewCoin("invalid/foo", sdk.NewInt(100)),
+					sdk.NewCoin("invalid/foo", sdkmath.NewInt(100)),
 				),
 			},
 			err: types.ErrNoMatchVouchers,

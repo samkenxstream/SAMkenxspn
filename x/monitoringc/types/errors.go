@@ -3,7 +3,7 @@ package types
 // DONTCOVER
 
 import (
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "cosmossdk.io/errors"
 )
 
 // x/monitoringc module sentinel errors
@@ -20,4 +20,9 @@ var (
 	ErrInvalidUnbondingPeriod       = sdkerrors.Register(ModuleName, 11, "invalid unbonding period")
 	ErrInvalidRevisionHeight        = sdkerrors.Register(ModuleName, 12, "invalid revision height")
 	ErrVerifiedClientIDsNotFound    = sdkerrors.Register(ModuleName, 13, "verified client IDs not found")
+	ErrInvalidClientCreatorAddress  = sdkerrors.Register(ModuleName, 14, "invalid client creator address")
+	ErrCannotCloseChannel           = sdkerrors.Register(ModuleName, 15, "user cannot close channel")
+	ErrJSONUnmarshal                = sdkerrors.Register(ModuleName, 16, "failed to unmarshal JSON")
+	ErrJSONMarshal                  = sdkerrors.Register(ModuleName, 17, "failed to marshal JSON")
+	ErrUnrecognizedPacketType       = sdkerrors.Register(ModuleName, 18, "unrecognized packet type")
 )

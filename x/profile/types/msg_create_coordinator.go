@@ -1,8 +1,8 @@
 package types
 
 import (
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 const TypeMsgCreateCoordinator = "create_coordinator"
@@ -44,7 +44,7 @@ func (msg *MsgCreateCoordinator) GetSignBytes() []byte {
 func (msg *MsgCreateCoordinator) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Address)
 	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid address (%s)", err)
+		return sdkerrors.Wrapf(ErrInvalidCoordAddress, err.Error())
 	}
 	return nil
 }

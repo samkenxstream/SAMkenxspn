@@ -5,9 +5,11 @@ import (
 	"testing"
 	"time"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
+	tc "github.com/tendermint/spn/testutil/constructor"
 	"github.com/tendermint/spn/testutil/sample"
 	"github.com/tendermint/spn/x/launch/types"
 )
@@ -22,32 +24,86 @@ func TestRequestContent_Validate(t *testing.T) {
 	selfDelegation := sample.Coin(r)
 	peer := sample.GenesisValidatorPeer(r)
 
-	requestContent := types.NewGenesisAccount(launchID, address, coins)
-	require.NoError(t, requestContent.Validate())
+	t.Run("should validate request with valid genesis account", func(t *testing.T) {
+		requestContent := types.NewGenesisAccount(launchID, address, coins)
+		require.NoError(t, requestContent.Validate(launchID))
+	})
 
-	requestContent = types.NewVestingAccount(launchID, address, vestingOptions)
-	require.NoError(t, requestContent.Validate())
+	t.Run("should validate request with valid vesting account", func(t *testing.T) {
+		requestContent := types.NewVestingAccount(launchID, address, vestingOptions)
+		require.NoError(t, requestContent.Validate(launchID))
+	})
 
-	requestContent = types.NewGenesisValidator(
-		launchID,
-		address,
-		gentTx,
-		consPubKey,
-		selfDelegation,
-		peer,
-	)
-	require.NoError(t, requestContent.Validate())
+	t.Run("should validate request with valid genesis validator", func(t *testing.T) {
+		requestContent := types.NewGenesisValidator(
+			launchID,
+			address,
+			gentTx,
+			consPubKey,
+			selfDelegation,
+			peer,
+		)
+		require.NoError(t, requestContent.Validate(launchID))
+	})
 
-	requestContent = types.NewAccountRemoval(address)
-	require.NoError(t, requestContent.Validate())
+	t.Run("should validate request with valid account removal", func(t *testing.T) {
+		requestContent := types.NewAccountRemoval(address)
+		require.NoError(t, requestContent.Validate(0))
+	})
 
-	requestContent = types.NewValidatorRemoval(address)
-	require.NoError(t, requestContent.Validate())
+	t.Run("should validate request with valid validator removal", func(t *testing.T) {
+		requestContent := types.NewValidatorRemoval(address)
+		require.NoError(t, requestContent.Validate(0))
+	})
 
-	// request with no content
-	requestContent = types.RequestContent{}
-	require.Equal(t, requestContent.Validate(), errors.New("unrecognized request content"))
+	t.Run("should prevent validate request with unrecognized content", func(t *testing.T) {
+		// request with no content
+		requestContent := types.RequestContent{}
+		require.Equal(t, requestContent.Validate(0), errors.New("unrecognized request content"))
+	})
+}
 
+func TestRequestContent_IsValidForMainnet(t *testing.T) {
+	launchID := uint64(0)
+	address := sample.Address(r)
+	coins := sample.Coins(r)
+	vestingOptions := sample.VestingOptions(r)
+	gentTx := sample.Bytes(r, 300)
+	consPubKey := sample.Bytes(r, 30)
+	selfDelegation := sample.Coin(r)
+	peer := sample.GenesisValidatorPeer(r)
+
+	t.Run("should validate AddValidator request", func(t *testing.T) {
+		requestContent := types.NewGenesisValidator(
+			launchID,
+			address,
+			gentTx,
+			consPubKey,
+			selfDelegation,
+			peer,
+		)
+		require.NoError(t, requestContent.IsValidForMainnet())
+	})
+
+	t.Run("should validate RemoveValidator request", func(t *testing.T) {
+		requestContent := types.NewValidatorRemoval(address)
+		require.NoError(t, requestContent.IsValidForMainnet())
+	})
+
+	t.Run("should prevent validate GenesisAccount request", func(t *testing.T) {
+		requestContent := types.NewGenesisAccount(launchID, address, coins)
+		require.Error(t, requestContent.IsValidForMainnet())
+	})
+
+	t.Run("should prevent validate VestingAccount request", func(t *testing.T) {
+		requestContent := types.NewVestingAccount(launchID, address, vestingOptions)
+		require.Error(t, requestContent.IsValidForMainnet())
+	})
+
+	t.Run("should prevent validate RemoveAccount request", func(t *testing.T) {
+		requestContent := types.NewAccountRemoval(address)
+		require.Error(t, requestContent.IsValidForMainnet())
+	})
 }
 
 func TestNewGenesisAccount(t *testing.T) {
@@ -55,36 +111,41 @@ func TestNewGenesisAccount(t *testing.T) {
 	address := sample.Address(r)
 	coins := sample.Coins(r)
 
-	requestContent := types.NewGenesisAccount(launchID, address, coins)
+	t.Run("should create a new genesis account", func(t *testing.T) {
+		requestContent := types.NewGenesisAccount(launchID, address, coins)
 
-	genesisAccount := requestContent.GetGenesisAccount()
-	require.NotNil(t, genesisAccount)
-	require.EqualValues(t, launchID, genesisAccount.LaunchID)
-	require.EqualValues(t, address, genesisAccount.Address)
-	require.True(t, coins.IsEqual(genesisAccount.Coins))
+		genesisAccount := requestContent.GetGenesisAccount()
+		require.NotNil(t, genesisAccount)
+		require.EqualValues(t, launchID, genesisAccount.LaunchID)
+		require.EqualValues(t, address, genesisAccount.Address)
+		require.True(t, coins.IsEqual(genesisAccount.Coins))
 
-	require.Nil(t, requestContent.GetVestingAccount())
-	require.Nil(t, requestContent.GetValidatorRemoval())
-	require.Nil(t, requestContent.GetAccountRemoval())
-	require.Nil(t, requestContent.GetValidatorRemoval())
+		require.Nil(t, requestContent.GetVestingAccount())
+		require.Nil(t, requestContent.GetValidatorRemoval())
+		require.Nil(t, requestContent.GetAccountRemoval())
+		require.Nil(t, requestContent.GetValidatorRemoval())
+	})
 }
 
 func TestNewVestingAccount(t *testing.T) {
 	launchID := uint64(0)
 	address := sample.Address(r)
 	vestingOptions := sample.VestingOptions(r)
-	requestContent := types.NewVestingAccount(launchID, address, vestingOptions)
 
-	vestingAccount := requestContent.GetVestingAccount()
-	require.NotNil(t, vestingAccount)
-	require.EqualValues(t, launchID, vestingAccount.LaunchID)
-	require.EqualValues(t, address, vestingAccount.Address)
-	require.Equal(t, vestingOptions, vestingAccount.VestingOptions)
+	t.Run("should create a new vesting account", func(t *testing.T) {
+		requestContent := types.NewVestingAccount(launchID, address, vestingOptions)
 
-	require.Nil(t, requestContent.GetGenesisAccount())
-	require.Nil(t, requestContent.GetValidatorRemoval())
-	require.Nil(t, requestContent.GetAccountRemoval())
-	require.Nil(t, requestContent.GetValidatorRemoval())
+		vestingAccount := requestContent.GetVestingAccount()
+		require.NotNil(t, vestingAccount)
+		require.EqualValues(t, launchID, vestingAccount.LaunchID)
+		require.EqualValues(t, address, vestingAccount.Address)
+		require.Equal(t, vestingOptions, vestingAccount.VestingOptions)
+
+		require.Nil(t, requestContent.GetGenesisAccount())
+		require.Nil(t, requestContent.GetValidatorRemoval())
+		require.Nil(t, requestContent.GetAccountRemoval())
+		require.Nil(t, requestContent.GetValidatorRemoval())
+	})
 }
 
 func TestNewGenesisValidator(t *testing.T) {
@@ -94,56 +155,63 @@ func TestNewGenesisValidator(t *testing.T) {
 	consPubKey := sample.Bytes(r, 30)
 	selfDelegation := sample.Coin(r)
 	peer := sample.GenesisValidatorPeer(r)
-	requestContent := types.NewGenesisValidator(
-		launchID,
-		address,
-		gentTx,
-		consPubKey,
-		selfDelegation,
-		peer,
-	)
 
-	genesisValidator := requestContent.GetGenesisValidator()
-	require.NotNil(t, genesisValidator)
-	require.EqualValues(t, launchID, genesisValidator.LaunchID)
-	require.EqualValues(t, address, genesisValidator.Address)
-	require.EqualValues(t, gentTx, genesisValidator.GenTx)
-	require.EqualValues(t, consPubKey, genesisValidator.ConsPubKey)
-	require.True(t, selfDelegation.IsEqual(genesisValidator.SelfDelegation))
-	require.EqualValues(t, peer, genesisValidator.Peer)
+	t.Run("should create a new genesis validator", func(t *testing.T) {
+		requestContent := types.NewGenesisValidator(
+			launchID,
+			address,
+			gentTx,
+			consPubKey,
+			selfDelegation,
+			peer,
+		)
 
-	require.Nil(t, requestContent.GetGenesisAccount())
-	require.Nil(t, requestContent.GetVestingAccount())
-	require.Nil(t, requestContent.GetAccountRemoval())
-	require.Nil(t, requestContent.GetValidatorRemoval())
+		genesisValidator := requestContent.GetGenesisValidator()
+		require.NotNil(t, genesisValidator)
+		require.EqualValues(t, launchID, genesisValidator.LaunchID)
+		require.EqualValues(t, address, genesisValidator.Address)
+		require.EqualValues(t, gentTx, genesisValidator.GenTx)
+		require.EqualValues(t, consPubKey, genesisValidator.ConsPubKey)
+		require.True(t, selfDelegation.IsEqual(genesisValidator.SelfDelegation))
+		require.EqualValues(t, peer, genesisValidator.Peer)
+
+		require.Nil(t, requestContent.GetGenesisAccount())
+		require.Nil(t, requestContent.GetVestingAccount())
+		require.Nil(t, requestContent.GetAccountRemoval())
+		require.Nil(t, requestContent.GetValidatorRemoval())
+	})
 }
 
 func TestNewAccountRemoval(t *testing.T) {
 	address := sample.Address(r)
 	requestContent := types.NewAccountRemoval(address)
 
-	accountRemoval := requestContent.GetAccountRemoval()
-	require.NotNil(t, accountRemoval)
-	require.EqualValues(t, address, accountRemoval.Address)
+	t.Run("should create a new account removal", func(t *testing.T) {
+		accountRemoval := requestContent.GetAccountRemoval()
+		require.NotNil(t, accountRemoval)
+		require.EqualValues(t, address, accountRemoval.Address)
 
-	require.Nil(t, requestContent.GetGenesisAccount())
-	require.Nil(t, requestContent.GetVestingAccount())
-	require.Nil(t, requestContent.GetGenesisValidator())
-	require.Nil(t, requestContent.GetValidatorRemoval())
+		require.Nil(t, requestContent.GetGenesisAccount())
+		require.Nil(t, requestContent.GetVestingAccount())
+		require.Nil(t, requestContent.GetGenesisValidator())
+		require.Nil(t, requestContent.GetValidatorRemoval())
+	})
 }
 
 func TestNewValidatorRemoval(t *testing.T) {
 	address := sample.Address(r)
 	requestContent := types.NewValidatorRemoval(address)
 
-	validatorRemoval := requestContent.GetValidatorRemoval()
-	require.NotNil(t, validatorRemoval)
-	require.EqualValues(t, address, validatorRemoval.ValAddress)
+	t.Run("should create a new validator removal", func(t *testing.T) {
+		validatorRemoval := requestContent.GetValidatorRemoval()
+		require.NotNil(t, validatorRemoval)
+		require.EqualValues(t, address, validatorRemoval.ValAddress)
 
-	require.Nil(t, requestContent.GetGenesisAccount())
-	require.Nil(t, requestContent.GetVestingAccount())
-	require.Nil(t, requestContent.GetGenesisValidator())
-	require.Nil(t, requestContent.GetAccountRemoval())
+		require.Nil(t, requestContent.GetGenesisAccount())
+		require.Nil(t, requestContent.GetVestingAccount())
+		require.Nil(t, requestContent.GetGenesisValidator())
+		require.Nil(t, requestContent.GetAccountRemoval())
+	})
 }
 
 func TestAccountRemoval_Validate(t *testing.T) {
@@ -153,14 +221,14 @@ func TestAccountRemoval_Validate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "invalid address",
+			name: "should prevent validate account removal with invalid address",
 			content: types.AccountRemoval{
 				Address: "invalid_address",
 			},
 			wantErr: true,
 		},
 		{
-			name: "valid content",
+			name: "should validate valid account removal",
 			content: types.AccountRemoval{
 				Address: sample.Address(r),
 			},
@@ -184,49 +252,64 @@ func TestGenesisAccount_Validate(t *testing.T) {
 		launchID = uint64(0)
 	)
 	tests := []struct {
-		name    string
-		content types.GenesisAccount
-		wantErr bool
+		name     string
+		content  types.GenesisAccount
+		launchID uint64
+		wantErr  bool
 	}{
 		{
-			name: "invalid address",
+			name: "should prevent validate genesis account with invalid address",
 			content: types.GenesisAccount{
 				Address:  "invalid_address",
 				LaunchID: launchID,
 				Coins:    sample.Coins(r),
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "request content without coins",
+			name: "should prevent validate genesis account without coins",
 			content: types.GenesisAccount{
 				Address:  addr,
 				LaunchID: launchID,
 				Coins:    sdk.NewCoins(),
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "request content with invalid coins",
+			name: "should prevent validate genesis account with invalid coins",
 			content: types.GenesisAccount{
 				Address:  addr,
 				LaunchID: launchID,
-				Coins:    sdk.Coins{sdk.Coin{Denom: "", Amount: sdk.NewInt(10)}},
+				Coins:    sdk.Coins{sdk.Coin{Denom: "", Amount: sdkmath.NewInt(10)}},
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "valid request content",
+			name: "should prevent validate genesis account with invalid launch ID",
 			content: types.GenesisAccount{
 				Address:  sample.Address(r),
 				LaunchID: launchID,
 				Coins:    sample.Coins(r),
 			},
+			launchID: launchID + 1,
+			wantErr:  true,
+		},
+		{
+			name: "should validate valid genesis account",
+			content: types.GenesisAccount{
+				Address:  sample.Address(r),
+				LaunchID: launchID,
+				Coins:    sample.Coins(r),
+			},
+			launchID: launchID,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.content.Validate()
+			err := tt.content.Validate(tt.launchID)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -242,12 +325,13 @@ func TestGenesisValidator_Validate(t *testing.T) {
 		launchID = uint64(0)
 	)
 	tests := []struct {
-		name    string
-		content types.GenesisValidator
-		wantErr bool
+		name     string
+		content  types.GenesisValidator
+		launchID uint64
+		wantErr  bool
 	}{
 		{
-			name: "valid request content",
+			name: "should validate valid genesis validator",
 			content: types.GenesisValidator{
 				LaunchID:       launchID,
 				Address:        addr,
@@ -256,9 +340,23 @@ func TestGenesisValidator_Validate(t *testing.T) {
 				SelfDelegation: sample.Coin(r),
 				Peer:           sample.GenesisValidatorPeer(r),
 			},
+			launchID: launchID,
 		},
 		{
-			name: "invalid address",
+			name: "should prevent validate genesis validator with invalid launch ID",
+			content: types.GenesisValidator{
+				LaunchID:       launchID,
+				Address:        addr,
+				GenTx:          sample.Bytes(r, 500),
+				ConsPubKey:     sample.Bytes(r, 30),
+				SelfDelegation: sample.Coin(r),
+				Peer:           sample.GenesisValidatorPeer(r),
+			},
+			launchID: launchID + 1,
+			wantErr:  true,
+		},
+		{
+			name: "should prevent validate genesis validator with invalid address",
 			content: types.GenesisValidator{
 				LaunchID:       launchID,
 				Address:        "invalid_address",
@@ -267,10 +365,11 @@ func TestGenesisValidator_Validate(t *testing.T) {
 				SelfDelegation: sample.Coin(r),
 				Peer:           sample.GenesisValidatorPeer(r),
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "empty consensus public key",
+			name: "should prevent validate genesis validator with empty consensus public key",
 			content: types.GenesisValidator{
 				LaunchID:       launchID,
 				Address:        addr,
@@ -279,10 +378,11 @@ func TestGenesisValidator_Validate(t *testing.T) {
 				SelfDelegation: sample.Coin(r),
 				Peer:           sample.GenesisValidatorPeer(r),
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "empty gentx",
+			name: "should prevent validate genesis validator with empty gentx",
 			content: types.GenesisValidator{
 				LaunchID:       launchID,
 				Address:        addr,
@@ -291,10 +391,11 @@ func TestGenesisValidator_Validate(t *testing.T) {
 				SelfDelegation: sample.Coin(r),
 				Peer:           sample.GenesisValidatorPeer(r),
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "empty peer",
+			name: "should prevent validate genesis validator with empty peer",
 			content: types.GenesisValidator{
 				LaunchID:       launchID,
 				Address:        addr,
@@ -303,10 +404,11 @@ func TestGenesisValidator_Validate(t *testing.T) {
 				SelfDelegation: sample.Coin(r),
 				Peer:           types.Peer{},
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "invalid self delegation",
+			name: "should prevent validate genesis validator with invalid self delegation",
 			content: types.GenesisValidator{
 				LaunchID:   launchID,
 				Address:    addr,
@@ -314,14 +416,15 @@ func TestGenesisValidator_Validate(t *testing.T) {
 				ConsPubKey: sample.Bytes(r, 30),
 				SelfDelegation: sdk.Coin{
 					Denom:  "",
-					Amount: sdk.NewInt(10),
+					Amount: sdkmath.NewInt(10),
 				},
 				Peer: sample.GenesisValidatorPeer(r),
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "zero self delegation",
+			name: "should prevent validate genesis validator with zero self delegation",
 			content: types.GenesisValidator{
 				LaunchID:   launchID,
 				Address:    addr,
@@ -329,16 +432,17 @@ func TestGenesisValidator_Validate(t *testing.T) {
 				ConsPubKey: sample.Bytes(r, 30),
 				SelfDelegation: sdk.Coin{
 					Denom:  "stake",
-					Amount: sdk.NewInt(0),
+					Amount: sdkmath.ZeroInt(),
 				},
 				Peer: sample.GenesisValidatorPeer(r),
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.content.Validate()
+			err := tt.content.Validate(tt.launchID)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -355,14 +459,14 @@ func TestValidatorRemoval_Validate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "invalid validator address",
+			name: "should prevent validate validator removal with invalid validator address",
 			content: types.ValidatorRemoval{
 				ValAddress: "invalid_address",
 			},
 			wantErr: true,
 		},
 		{
-			name: "valid request content",
+			name: "should validate valid validator removal",
 			content: types.ValidatorRemoval{
 				ValAddress: sample.Address(r),
 			},
@@ -383,49 +487,155 @@ func TestValidatorRemoval_Validate(t *testing.T) {
 func TestVestingAccount_Validate(t *testing.T) {
 	launchID := uint64(0)
 
-	option := *types.NewDelayedVesting(coinsStr(t, "1000foo500bar"), coinsStr(t, "500foo500bar"), time.Now().Unix())
+	option := *types.NewDelayedVesting(
+		tc.Coins(t, "1000foo500bar"),
+		tc.Coins(t, "500foo500bar"),
+		time.Now(),
+	)
 
 	tests := []struct {
-		name    string
-		content types.VestingAccount
-		wantErr bool
+		name     string
+		content  types.VestingAccount
+		launchID uint64
+		wantErr  bool
 	}{
 		{
-			name: "invalid address",
+			name: "should prevent validate vesting account with invalid address",
 			content: types.VestingAccount{
 				LaunchID:       launchID,
 				Address:        "invalid_address",
 				VestingOptions: option,
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "invalid vesting option",
+			name: "should prevent validate vesting account with invalid vesting option",
 			content: types.VestingAccount{
 				Address:  sample.Address(r),
 				LaunchID: launchID,
 				VestingOptions: *types.NewDelayedVesting(
 					sample.Coins(r),
 					sample.Coins(r),
-					0,
+					sample.ZeroTime(),
 				),
 			},
-			wantErr: true,
+			launchID: launchID,
+			wantErr:  true,
 		},
 		{
-			name: "valid request content",
+			name: "should prevent validate genesis validator with invalid launch ID",
 			content: types.VestingAccount{
 				Address:        sample.Address(r),
 				LaunchID:       launchID,
 				VestingOptions: option,
 			},
+			launchID: launchID + 1,
+			wantErr:  true,
+		},
+		{
+			name: "should validate valid vesting account",
+			content: types.VestingAccount{
+				Address:        sample.Address(r),
+				LaunchID:       launchID,
+				VestingOptions: option,
+			},
+			launchID: launchID,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.content.Validate()
+			err := tt.content.Validate(tt.launchID)
 			if tt.wantErr {
 				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestParamChange_Validate(t *testing.T) {
+	launchID := uint64(0)
+
+	tests := []struct {
+		name     string
+		content  types.ParamChange
+		launchID uint64
+		err      error
+	}{
+		{
+			name: "should prevent validate change param with empty module string",
+			content: types.ParamChange{
+				LaunchID: launchID,
+				Module:   "",
+				Param:    sample.AlphaString(r, 10),
+				Value:    sample.Bytes(r, 10),
+			},
+			launchID: launchID,
+			err:      types.ErrInvalidModuleName,
+		},
+		{
+			name: "should prevent validate change param with empty param string",
+			content: types.ParamChange{
+				LaunchID: launchID,
+				Module:   sample.AlphaString(r, 10),
+				Param:    "",
+				Value:    sample.Bytes(r, 10),
+			},
+			launchID: launchID,
+			err:      types.ErrInvalidParamName,
+		},
+		{
+			name: "should prevent validate change param with non alpha module string",
+			content: types.ParamChange{
+				LaunchID: launchID,
+				Module:   sample.NonAlphaString(r, 10),
+				Param:    sample.AlphaString(r, 10),
+				Value:    sample.Bytes(r, 10),
+			},
+			launchID: launchID,
+			err:      types.ErrInvalidModuleName,
+		},
+		{
+			name: "should prevent validate change param with non alpha param string",
+			content: types.ParamChange{
+				LaunchID: launchID,
+				Module:   sample.AlphaString(r, 10),
+				Param:    sample.NonAlphaString(r, 10),
+				Value:    sample.Bytes(r, 10),
+			},
+			launchID: launchID,
+			err:      types.ErrInvalidParamName,
+		},
+		{
+			name: "should prevent validate change param with invalid launchID",
+			content: types.ParamChange{
+				LaunchID: launchID,
+				Module:   sample.AlphaString(r, 10),
+				Param:    sample.AlphaString(r, 10),
+				Value:    sample.Bytes(r, 10),
+			},
+			launchID: launchID + 1,
+			err:      types.ErrInvalidLaunchID,
+		},
+		{
+			name: "should validate valid change param",
+			content: types.ParamChange{
+				LaunchID: launchID,
+				Module:   sample.AlphaString(r, 10),
+				Param:    sample.AlphaString(r, 10),
+				Value:    sample.Bytes(r, 10),
+			},
+			launchID: launchID,
+			err:      nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.content.Validate(tt.launchID)
+			if tt.err != nil {
+				require.ErrorIs(t, err, tt.err)
 				return
 			}
 			require.NoError(t, err)

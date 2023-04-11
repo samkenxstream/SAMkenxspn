@@ -1,10 +1,10 @@
 package types
 
 import (
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	spntypes "github.com/tendermint/spn/pkg/types"
+	profile "github.com/tendermint/spn/x/profile/types"
 )
 
 const TypeMsgCreateCampaign = "create_campaign"
@@ -49,7 +49,7 @@ func (msg *MsgCreateCampaign) GetSignBytes() []byte {
 func (msg *MsgCreateCampaign) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Coordinator)
 	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid coordinator address (%s)", err)
+		return sdkerrors.Wrap(profile.ErrInvalidCoordAddress, err.Error())
 	}
 
 	if err := CheckCampaignName(msg.CampaignName); err != nil {
@@ -58,12 +58,6 @@ func (msg *MsgCreateCampaign) ValidateBasic() error {
 
 	if !msg.TotalSupply.IsValid() {
 		return sdkerrors.Wrap(ErrInvalidTotalSupply, "total supply is not a valid Coins object")
-	}
-
-	// TODO parameterize
-	if len(msg.Metadata) > spntypes.MaxMetadataLength {
-		return sdkerrors.Wrapf(ErrInvalidMetadataLength, "data length %d is greater than maximum %d",
-			len(msg.Metadata), spntypes.MaxMetadataLength)
 	}
 
 	return nil

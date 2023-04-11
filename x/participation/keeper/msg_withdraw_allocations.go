@@ -3,11 +3,11 @@ package keeper
 import (
 	"context"
 
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	ignterrors "github.com/ignite/modules/pkg/errors"
 	fundraisingtypes "github.com/tendermint/fundraising/x/fundraising/types"
 
-	spnerrors "github.com/tendermint/spn/pkg/errors"
 	"github.com/tendermint/spn/x/participation/types"
 )
 
@@ -38,14 +38,14 @@ func (k msgServer) WithdrawAllocations(goCtx context.Context, msg *types.MsgWith
 
 	totalUsedAllocations, found := k.GetUsedAllocations(ctx, msg.Participant)
 	if !found {
-		return nil, spnerrors.Criticalf("unable to find total used allocations entry for address %s", msg.Participant)
+		return nil, ignterrors.Criticalf("unable to find total used allocations entry for address %s", msg.Participant)
 	}
 
 	// decrease totalUsedAllocations making sure subtraction is feasible
-	if totalUsedAllocations.NumAllocations < auctionUsedAllocations.NumAllocations {
-		return nil, spnerrors.Critical("number of total used allocations cannot become negative")
+	if totalUsedAllocations.NumAllocations.LT(auctionUsedAllocations.NumAllocations) {
+		return nil, ignterrors.Critical("number of total used allocations cannot become negative")
 	}
-	totalUsedAllocations.NumAllocations -= auctionUsedAllocations.NumAllocations
+	totalUsedAllocations.NumAllocations = totalUsedAllocations.NumAllocations.Sub(auctionUsedAllocations.NumAllocations)
 
 	auctionUsedAllocations.Withdrawn = true
 	k.SetAuctionUsedAllocations(ctx, auctionUsedAllocations)

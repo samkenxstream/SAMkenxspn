@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"testing"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
@@ -49,7 +50,7 @@ func TestKeeper_CheckValidatorSet(t *testing.T) {
 			LaunchID:       launchID,
 			Address:        addr.String(),
 			ConsPubKey:     validator.Bytes(),
-			SelfDelegation: sdk.NewCoin("spn", sdk.NewInt(1000)),
+			SelfDelegation: sdk.NewCoin("spn", sdkmath.NewInt(1000)),
 		})
 		validatorSet.Validators = append(validatorSet.Validators,
 			tmtypes.NewValidator(validator, 0),
@@ -71,7 +72,7 @@ func TestKeeper_CheckValidatorSet(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "chain not found",
+			name: "should prevent validate validator set for non existing chain",
 			args: args{
 				launchID:     999,
 				chainID:      "spn-1",
@@ -80,7 +81,7 @@ func TestKeeper_CheckValidatorSet(t *testing.T) {
 			err: types.ErrChainNotFound,
 		},
 		{
-			name: "chain not triggered launch",
+			name: "should prevent validate validator set for chain with launch not triggered",
 			args: args{
 				launchID:     notTriggeredLaunchID,
 				chainID:      "spn-1",
@@ -89,7 +90,7 @@ func TestKeeper_CheckValidatorSet(t *testing.T) {
 			err: types.ErrNotTriggeredLaunch,
 		},
 		{
-			name: "invalid genesis chain id",
+			name: "should prevent validate validator set for chain with invalid genesis chain id",
 			args: args{
 				launchID:     invalidChainIDLaunchID,
 				chainID:      "spn-1",
@@ -98,7 +99,7 @@ func TestKeeper_CheckValidatorSet(t *testing.T) {
 			err: types.ErrInvalidGenesisChainID,
 		},
 		{
-			name: "chain is already connected to monitoring",
+			name: "should prevent validate validator set for chain with monitoring already connected",
 			args: args{
 				launchID:     monitoringConnectedLaunchID,
 				chainID:      "spn-1",
@@ -107,7 +108,7 @@ func TestKeeper_CheckValidatorSet(t *testing.T) {
 			err: types.ErrChainMonitoringConnected,
 		},
 		{
-			name: "validator not found",
+			name: "should prevent validate validator set if a validator is not found",
 			args: args{
 				launchID:     launchID,
 				chainID:      "spn-1",
@@ -116,7 +117,7 @@ func TestKeeper_CheckValidatorSet(t *testing.T) {
 			err: types.ErrValidatorNotFound,
 		},
 		{
-			name: "invalid validator set",
+			name: "should prevent validate validator set if the minimum self delegation total is not reached",
 			args: args{
 				launchID:     launchID,
 				chainID:      "spn-1",
@@ -125,7 +126,7 @@ func TestKeeper_CheckValidatorSet(t *testing.T) {
 			err: types.ErrMinSelfDelegationNotReached,
 		},
 		{
-			name: "valid validator set",
+			name: "should allow validate valid validator set",
 			args: args{
 				launchID:     launchID,
 				chainID:      "spn-1",

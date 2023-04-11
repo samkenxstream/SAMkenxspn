@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/stretchr/testify/require"
 	fundraisingtypes "github.com/tendermint/fundraising/x/fundraising/types"
 
@@ -18,16 +18,18 @@ func Test_msgServer_Participate(t *testing.T) {
 	var (
 		sdkCtx, tk, ts                   = testkeeper.NewTestSetup(t)
 		auctioneer                       = sample.Address(r)
-		sellingCoin1                     = sample.Coin(r)
-		sellingCoin2                     = sample.Coin(r)
 		registrationPeriod               = time.Hour * 5 // 5 hours before start
 		startTime                        = sdkCtx.BlockTime().Add(time.Hour * 10)
 		startTimeLowerRegistrationPeriod = time.Unix(int64((registrationPeriod - time.Hour).Seconds()), 0)
 		endTime                          = sdkCtx.BlockTime().Add(time.Hour * 24 * 7)
 		validRegistrationTime            = sdkCtx.BlockTime().Add(time.Hour * 6)
-		allocationPrice                  = types.AllocationPrice{Bonded: sdk.NewInt(100)}
+		allocationPrice                  = types.AllocationPrice{Bonded: sdkmath.NewInt(100)}
 		addrsWithDelsTier                = []string{sample.Address(r), sample.Address(r), sample.Address(r), sample.Address(r)}
-		availableAllocsTier              = make([]uint64, len(addrsWithDelsTier))
+		availableAllocsTier              = make([]sdkmath.Int, len(addrsWithDelsTier))
+		auctionRegistrationPeriodID      uint64
+		auctionStartedID                 uint64
+		auctionLowerRegistrationPeriodID uint64
+		auctionCancelledID               uint64
 	)
 
 	params := types.DefaultParams()
@@ -35,26 +37,33 @@ func Test_msgServer_Participate(t *testing.T) {
 	params.RegistrationPeriod = registrationPeriod
 	tk.ParticipationKeeper.SetParams(sdkCtx, params)
 
-	// initialize auction
-	tk.Mint(sdkCtx, auctioneer, sdk.NewCoins(sellingCoin1))
-	auctionRegistrationPeriodID := tk.CreateFixedPriceAuction(sdkCtx, r, auctioneer, sellingCoin1, startTime, endTime)
-	// initialize auction with edge case start time (forcefully set to status standby)
-	tk.Mint(sdkCtx, auctioneer, sdk.NewCoins(sellingCoin2))
-	auctionLowerRegistrationPeriodID := tk.CreateFixedPriceAuction(sdkCtx, r, auctioneer, sellingCoin2, startTimeLowerRegistrationPeriod, endTime)
-	auctionLowerRegistrationPeriod, found := tk.FundraisingKeeper.GetAuction(sdkCtx, auctionLowerRegistrationPeriodID)
-	require.True(t, found)
-	err := auctionLowerRegistrationPeriod.SetStatus(fundraisingtypes.AuctionStatusStandBy)
-	require.NoError(t, err)
-	tk.FundraisingKeeper.SetAuction(sdkCtx, auctionLowerRegistrationPeriod)
-	// initialize auction that is already started
-	tk.Mint(sdkCtx, auctioneer, sdk.NewCoins(sellingCoin1))
-	auctionStartedID := tk.CreateFixedPriceAuction(sdkCtx, r, auctioneer, sellingCoin1, sdkCtx.BlockTime(), endTime)
-	// initialize auction that will be set to `cancelled`
-	tk.Mint(sdkCtx, auctioneer, sdk.NewCoins(sellingCoin1))
-	auctionCancelledID := tk.CreateFixedPriceAuction(sdkCtx, r, auctioneer, sellingCoin1, startTime, endTime)
-	// cancel auction
-	err = tk.FundraisingKeeper.CancelAuction(sdkCtx, fundraisingtypes.NewMsgCancelAuction(auctioneer, auctionCancelledID))
-	require.NoError(t, err)
+	sellingCoin1 := sample.CoinWithRange(r, params.ParticipationTierList[1].Benefits.MaxBidAmount.Int64(),
+		params.ParticipationTierList[1].Benefits.MaxBidAmount.Int64()+1000)
+
+	sellingCoin2 := sample.CoinWithRange(r, params.ParticipationTierList[1].Benefits.MaxBidAmount.Int64(),
+		params.ParticipationTierList[1].Benefits.MaxBidAmount.Int64()+1000)
+
+	t.Run("should allow initialize auctions", func(t *testing.T) {
+		tk.Mint(sdkCtx, auctioneer, sdk.NewCoins(sellingCoin1))
+		auctionRegistrationPeriodID = tk.CreateFixedPriceAuction(sdkCtx, r, auctioneer, sellingCoin1, startTime, endTime)
+		// initialize auction with edge case start time (forcefully set to status standby)
+		tk.Mint(sdkCtx, auctioneer, sdk.NewCoins(sellingCoin2))
+		auctionLowerRegistrationPeriodID = tk.CreateFixedPriceAuction(sdkCtx, r, auctioneer, sellingCoin2, startTimeLowerRegistrationPeriod, endTime)
+		auctionLowerRegistrationPeriod, found := tk.FundraisingKeeper.GetAuction(sdkCtx, auctionLowerRegistrationPeriodID)
+		require.True(t, found)
+		err := auctionLowerRegistrationPeriod.SetStatus(fundraisingtypes.AuctionStatusStandBy)
+		require.NoError(t, err)
+		tk.FundraisingKeeper.SetAuction(sdkCtx, auctionLowerRegistrationPeriod)
+		// initialize auction that is already started
+		tk.Mint(sdkCtx, auctioneer, sdk.NewCoins(sellingCoin1))
+		auctionStartedID = tk.CreateFixedPriceAuction(sdkCtx, r, auctioneer, sellingCoin1, sdkCtx.BlockTime(), endTime)
+		// initialize auction that will be set to `cancelled`
+		tk.Mint(sdkCtx, auctioneer, sdk.NewCoins(sellingCoin1))
+		auctionCancelledID = tk.CreateFixedPriceAuction(sdkCtx, r, auctioneer, sellingCoin1, startTime, endTime)
+		// cancel auction
+		err = tk.FundraisingKeeper.CancelAuction(sdkCtx, fundraisingtypes.NewMsgCancelAuction(auctioneer, auctionCancelledID))
+		require.NoError(t, err)
+	})
 
 	// add delegations
 	for i := 0; i < len(addrsWithDelsTier); i++ {
@@ -62,36 +71,36 @@ func Test_msgServer_Participate(t *testing.T) {
 		var err error
 		availableAllocsTier[i], err = tk.ParticipationKeeper.GetAvailableAllocations(sdkCtx, addrsWithDelsTier[i])
 		require.NoError(t, err)
-		require.EqualValues(t, 10, availableAllocsTier[i])
+		require.EqualValues(t, sdkmath.NewInt(10), availableAllocsTier[i])
 	}
 
 	tests := []struct {
 		name                  string
 		msg                   *types.MsgParticipate
-		desiredUsedAlloc      uint64
-		currentAvailableAlloc uint64
+		desiredUsedAlloc      sdkmath.Int
+		currentAvailableAlloc sdkmath.Int
 		blockTime             time.Time
 		err                   error
 	}{
 		{
-			name: "valid message tier 1",
+			name: "should allow valid message tier 1",
 			msg: &types.MsgParticipate{
 				Participant: addrsWithDelsTier[0],
 				AuctionID:   auctionRegistrationPeriodID,
 				TierID:      1,
 			},
-			desiredUsedAlloc:      1,
+			desiredUsedAlloc:      sdkmath.OneInt(),
 			currentAvailableAlloc: availableAllocsTier[0],
 			blockTime:             validRegistrationTime,
 		},
 		{
-			name: "valid message tier 2",
+			name: "should allow valid message tier 2",
 			msg: &types.MsgParticipate{
 				Participant: addrsWithDelsTier[1],
 				AuctionID:   auctionRegistrationPeriodID,
 				TierID:      2,
 			},
-			desiredUsedAlloc:      2,
+			desiredUsedAlloc:      sdkmath.NewInt(2),
 			currentAvailableAlloc: availableAllocsTier[1],
 			blockTime:             validRegistrationTime,
 		},
@@ -102,18 +111,18 @@ func Test_msgServer_Participate(t *testing.T) {
 				AuctionID:   auctionLowerRegistrationPeriodID,
 				TierID:      1,
 			},
-			desiredUsedAlloc:      1,
+			desiredUsedAlloc:      sdkmath.OneInt(),
 			currentAvailableAlloc: availableAllocsTier[2],
 			blockTime:             time.Unix(1, 0),
 		},
 		{
-			name: "invalid message",
+			name: "should prevent invalid address",
 			msg: &types.MsgParticipate{
 				Participant: "",
 				AuctionID:   auctionRegistrationPeriodID,
 				TierID:      1,
 			},
-			err:       sdkerrors.ErrInvalidAddress,
+			err:       types.ErrInvalidAddress,
 			blockTime: validRegistrationTime,
 		},
 		{
@@ -237,7 +246,7 @@ func Test_msgServer_Participate(t *testing.T) {
 			availableAlloc, err := tk.ParticipationKeeper.GetAvailableAllocations(tmpSdkCtx, tt.msg.Participant)
 			require.NoError(t, err)
 			require.True(t, found)
-			require.EqualValues(t, tt.currentAvailableAlloc-tier.RequiredAllocations, availableAlloc)
+			require.EqualValues(t, tt.currentAvailableAlloc.Sub(tier.RequiredAllocations), availableAlloc)
 		})
 	}
 }

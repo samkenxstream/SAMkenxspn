@@ -4,14 +4,12 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/stretchr/testify/require"
 
-	campaigntypes "github.com/tendermint/spn/x/campaign/types"
-
 	testkeeper "github.com/tendermint/spn/testutil/keeper"
 	"github.com/tendermint/spn/testutil/sample"
+	campaigntypes "github.com/tendermint/spn/x/campaign/types"
 	"github.com/tendermint/spn/x/launch/keeper"
 	"github.com/tendermint/spn/x/launch/types"
 	profiletypes "github.com/tendermint/spn/x/profile/types"
@@ -88,6 +86,17 @@ func TestMsgCreateChain(t *testing.T) {
 	// coordAddrs[4] is not funded
 	initCreationFeeAndFundCoordAccounts(t, tk.LaunchKeeper, tk.BankKeeper, sdkCtx, chainCreationFee, 1, coordAddrs[:4]...)
 
+	// create message with an invalid metadata length
+	msgCreateChainInvalidMetadata := sample.MsgCreateChain(
+		r,
+		coordAddrs[0],
+		"",
+		false,
+		campMap[coordAddrs[0]],
+	)
+	maxMetadataLength := tk.LaunchKeeper.MaxMetadataLength(sdkCtx)
+	msgCreateChainInvalidMetadata.Metadata = sample.Metadata(r, maxMetadataLength+1)
+
 	for _, tc := range []struct {
 		name          string
 		msg           types.MsgCreateChain
@@ -95,44 +104,49 @@ func TestMsgCreateChain(t *testing.T) {
 		err           error
 	}{
 		{
-			name:          "valid message",
+			name:          "should create a chain",
 			msg:           sample.MsgCreateChain(r, coordAddrs[0], "", false, campMap[coordAddrs[0]]),
 			wantedChainID: 0,
 		},
 		{
-			name:          "creates a unique chain ID",
+			name:          "should allow creating a chain with a unique chain ID",
 			msg:           sample.MsgCreateChain(r, coordAddrs[1], "", false, campMap[coordAddrs[1]]),
 			wantedChainID: 1,
 		},
 		{
-			name:          "valid message with genesis url",
+			name:          "should allow creating a chain with genesis url",
 			msg:           sample.MsgCreateChain(r, coordAddrs[2], "foo.com", false, campMap[coordAddrs[2]]),
 			wantedChainID: 2,
 		},
 		{
-			name:          "creates message with campaign",
+			name:          "should allow creating a chain with campaign",
 			msg:           sample.MsgCreateChain(r, coordAddrs[3], "", true, campMap[coordAddrs[3]]),
 			wantedChainID: 3,
 		},
 		{
-			name: "coordinator doesn't exist for the chain",
+			name: "should prevent creating a chain where coordinator doesn't exist for the chain",
 			msg:  sample.MsgCreateChain(r, sample.Address(r), "", false, 0),
 			err:  profiletypes.ErrCoordAddressNotFound,
 		},
 		{
-			name: "invalid campaign id",
+			name: "should prevent creating a chain with invalid campaign id",
 			msg:  sample.MsgCreateChain(r, coordAddrs[0], "", true, 1000),
 			err:  types.ErrCreateChainFail,
 		},
 		{
-			name: "invalid coordinator address",
+			name: "should prevent creating a chain with invalid coordinator address",
 			msg:  sample.MsgCreateChain(r, invalidCoordAddress, "", true, 1000),
 			err:  types.ErrCreateChainFail,
 		},
 		{
-			name: "insufficient balance to cover creation fee",
+			name: "should prevent creating a chain with insufficient balance to cover creation fee",
 			msg:  sample.MsgCreateChain(r, coordAddrs[4], "", false, campMap[coordAddrs[4]]),
-			err:  sdkerrors.ErrInsufficientFunds,
+			err:  types.ErrFundCommunityPool,
+		},
+		{
+			name: "should prevent a chain with invalid metadata length",
+			msg:  msgCreateChainInvalidMetadata,
+			err:  types.ErrInvalidMetadataLength,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -158,17 +172,7 @@ func TestMsgCreateChain(t *testing.T) {
 			require.EqualValues(t, tc.msg.SourceURL, chain.SourceURL)
 			require.EqualValues(t, tc.msg.SourceHash, chain.SourceHash)
 			require.EqualValues(t, tc.msg.Metadata, chain.Metadata)
-
-			// Compare initial genesis
-			if tc.msg.GenesisURL == "" {
-				require.Equal(t, types.NewDefaultInitialGenesis(), chain.InitialGenesis)
-			} else {
-				require.Equal(
-					t,
-					types.NewGenesisURL(tc.msg.GenesisURL, tc.msg.GenesisHash),
-					chain.InitialGenesis,
-				)
-			}
+			require.EqualValues(t, tc.msg.InitialGenesis, chain.InitialGenesis)
 
 			// Chain created from MsgCreateChain is never a mainnet
 			require.False(t, chain.IsMainnet)
@@ -184,7 +188,7 @@ func TestMsgCreateChain(t *testing.T) {
 
 			// check fee deduction
 			postBalance := tk.BankKeeper.SpendableCoins(sdkCtx, accAddr)
-			require.True(t, preBalance.Sub(chainCreationFee).IsEqual(postBalance))
+			require.True(t, preBalance.Sub(chainCreationFee...).IsEqual(postBalance))
 		})
 	}
 }

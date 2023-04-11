@@ -1,8 +1,8 @@
 package types
 
 import (
+	sdkerrors "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 const TypeMsgWithdrawAllocations = "withdraw_allocations"
@@ -40,7 +40,7 @@ func (msg *MsgWithdrawAllocations) GetSignBytes() []byte {
 func (msg *MsgWithdrawAllocations) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Participant)
 	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid participant address (%s)", err)
+		return sdkerrors.Wrap(ErrInvalidAddress, err.Error())
 	}
 	return nil
 }

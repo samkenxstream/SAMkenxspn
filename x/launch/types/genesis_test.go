@@ -21,7 +21,7 @@ func TestGenesisState_Validate(t *testing.T) {
 		genesisChainID   = sample.GenesisChainID(r)
 
 		// Those are samples we can use for each fields when they are not the one to test
-		sampleChainList = []types.Chain{
+		sampleChains = []types.Chain{
 			{
 				LaunchID:       launchID1,
 				GenesisChainID: genesisChainID,
@@ -31,7 +31,7 @@ func TestGenesisState_Validate(t *testing.T) {
 				GenesisChainID: genesisChainID,
 			},
 		}
-		sampleGenesisAccountList = []types.GenesisAccount{
+		sampleGenesisAccounts = []types.GenesisAccount{
 			{
 				LaunchID: launchID1,
 				Address:  addr1,
@@ -49,7 +49,7 @@ func TestGenesisState_Validate(t *testing.T) {
 				Address:  addr2,
 			},
 		}
-		sampleVestingAccountList = []types.VestingAccount{
+		sampleVestingAccounts = []types.VestingAccount{
 			{
 				LaunchID: launchID1,
 				Address:  vestingAddress,
@@ -59,8 +59,8 @@ func TestGenesisState_Validate(t *testing.T) {
 				Address:  vestingAddress,
 			},
 		}
-		sampleGenesisValidatorList = []types.GenesisValidator{genesisValidator}
-		sampleRequestList          = []types.Request{
+		sampleGenesisValidators = []types.GenesisValidator{genesisValidator}
+		sampleRequests          = []types.Request{
 			{
 				LaunchID:  launchID1,
 				RequestID: 0,
@@ -70,7 +70,7 @@ func TestGenesisState_Validate(t *testing.T) {
 				RequestID: 1,
 			},
 		}
-		sampleRequestCounterList = []types.RequestCounter{
+		sampleRequestCounters = []types.RequestCounter{
 			{
 				LaunchID: launchID1,
 				Counter:  10,
@@ -84,30 +84,30 @@ func TestGenesisState_Validate(t *testing.T) {
 		shouldBeValid bool
 	}{
 		{
-			desc:          "default is valid",
+			desc:          "should validate default genesis",
 			genState:      types.DefaultGenesis(),
 			shouldBeValid: true,
 		},
 		{
-			desc: "valid genesis state",
+			desc: "should validate valid genesis state",
 			genState: &types.GenesisState{
-				ChainList:            sampleChainList,
-				ChainCounter:         10,
-				GenesisAccountList:   sampleGenesisAccountList,
-				VestingAccountList:   sampleVestingAccountList,
-				GenesisValidatorList: sampleGenesisValidatorList,
-				RequestList:          sampleRequestList,
-				RequestCounterList:   sampleRequestCounterList,
-				Params:               types.DefaultParams(),
+				Chains:            sampleChains,
+				ChainCounter:      10,
+				GenesisAccounts:   sampleGenesisAccounts,
+				VestingAccounts:   sampleVestingAccounts,
+				GenesisValidators: sampleGenesisValidators,
+				Requests:          sampleRequests,
+				RequestCounters:   sampleRequestCounters,
+				Params:            types.DefaultParams(),
 				// this line is used by starport scaffolding # types/genesis/validField
 			},
 			shouldBeValid: true,
 		},
 		// this line is used by starport scaffolding # types/genesis/testcase
 		{
-			desc: "invalid chain",
+			desc: "should prevent validate genesis with an invalid chain",
 			genState: &types.GenesisState{
-				ChainList: []types.Chain{
+				Chains: []types.Chain{
 					{
 						LaunchID:       launchID1,
 						GenesisChainID: "invalid_chain_id",
@@ -118,9 +118,9 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "duplicated chains",
+			desc: "should prevent validate genesis with duplicated chains",
 			genState: &types.GenesisState{
-				ChainList: []types.Chain{
+				Chains: []types.Chain{
 					{
 						LaunchID:       launchID1,
 						GenesisChainID: genesisChainID,
@@ -136,9 +136,9 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "chain with a chain id number above the chain counter",
+			desc: "should prevent validate genesis with a chain with a chain id number above the chain counter",
 			genState: &types.GenesisState{
-				ChainList: []types.Chain{
+				Chains: []types.Chain{
 					{
 						LaunchID:       12,
 						GenesisChainID: genesisChainID,
@@ -150,11 +150,11 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "duplicated accounts",
+			desc: "should prevent validate genesis with duplicated accounts",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				GenesisAccountList: []types.GenesisAccount{
+				GenesisAccounts: []types.GenesisAccount{
 					{
 						LaunchID: launchID1,
 						Address:  addr1,
@@ -169,11 +169,11 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "account not associated with chain",
+			desc: "should prevent validate genesis with an account not associated with chain",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				GenesisAccountList: []types.GenesisAccount{
+				GenesisAccounts: []types.GenesisAccount{
 					{
 						LaunchID: noExistLaunchID,
 						Address:  addr1,
@@ -184,11 +184,11 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "duplicated vesting accounts",
+			desc: "should prevent validate genesis with duplicated vesting accounts",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				VestingAccountList: []types.VestingAccount{
+				VestingAccounts: []types.VestingAccount{
 					{
 						LaunchID: launchID1,
 						Address:  vestingAddress,
@@ -203,11 +203,11 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "vesting account not associated with chain",
+			desc: "should prevent validate genesis with a vesting account not associated with chain",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				VestingAccountList: []types.VestingAccount{
+				VestingAccounts: []types.VestingAccount{
 					{
 						LaunchID: noExistLaunchID,
 						Address:  vestingAddress,
@@ -217,17 +217,17 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "address as genesis account and vesting account",
+			desc: "should prevent validate genesis with one address present in a genesis account and vesting account",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				GenesisAccountList: []types.GenesisAccount{
+				GenesisAccounts: []types.GenesisAccount{
 					{
 						LaunchID: launchID1,
 						Address:  addr1,
 					},
 				},
-				VestingAccountList: []types.VestingAccount{
+				VestingAccounts: []types.VestingAccount{
 					{
 						LaunchID: launchID1,
 						Address:  addr1,
@@ -238,11 +238,11 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "genesis validator not associated to a chain",
+			desc: "should prevent validate genesis with a genesis validator not associated to a chain",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				GenesisValidatorList: []types.GenesisValidator{
+				GenesisValidators: []types.GenesisValidator{
 					sample.GenesisValidator(r, noExistLaunchID, addr1),
 				},
 				Params: types.DefaultParams(),
@@ -250,11 +250,11 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "duplicated genesis validator",
+			desc: "should prevent validate genesis with duplicated genesis validator",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				GenesisValidatorList: []types.GenesisValidator{
+				GenesisValidators: []types.GenesisValidator{
 					sample.GenesisValidator(r, launchID1, addr1),
 					sample.GenesisValidator(r, launchID1, addr1),
 				},
@@ -263,11 +263,11 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "validator address not associated to a chain",
+			desc: "should prevent validate genesis with a validator address not associated to a chain",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				GenesisValidatorList: []types.GenesisValidator{
+				GenesisValidators: []types.GenesisValidator{
 					sample.GenesisValidator(r, noExistLaunchID, addr1),
 				},
 				Params: types.DefaultParams(),
@@ -275,12 +275,12 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "duplicated requests",
+			desc: "should prevent validate genesis with duplicated requests",
 			genState: &types.GenesisState{
-				ChainList:          sampleChainList,
-				ChainCounter:       10,
-				RequestCounterList: sampleRequestCounterList,
-				RequestList: []types.Request{
+				Chains:          sampleChains,
+				ChainCounter:    10,
+				RequestCounters: sampleRequestCounters,
+				Requests: []types.Request{
 					{
 						LaunchID:  launchID1,
 						RequestID: 0,
@@ -295,12 +295,12 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "request not associated with chain",
+			desc: "should prevent validate genesis with request not associated with chain",
 			genState: &types.GenesisState{
-				ChainList:          sampleChainList,
-				ChainCounter:       10,
-				RequestCounterList: sampleRequestCounterList,
-				RequestList: []types.Request{
+				Chains:          sampleChains,
+				ChainCounter:    10,
+				RequestCounters: sampleRequestCounters,
+				Requests: []types.Request{
 					{
 						LaunchID:  noExistLaunchID,
 						RequestID: 0,
@@ -311,17 +311,17 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "request while no request count for the chain",
+			desc: "should prevent validate genesis with request while no request count for the chain",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				RequestCounterList: []types.RequestCounter{
+				RequestCounters: []types.RequestCounter{
 					{
 						LaunchID: launchID2,
 						Counter:  1,
 					},
 				},
-				RequestList: []types.Request{
+				Requests: []types.Request{
 					{
 						LaunchID:  launchID1,
 						RequestID: 0,
@@ -332,11 +332,11 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "duplicated request counter",
+			desc: "should prevent validate genesis with duplicated request counter",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				RequestCounterList: []types.RequestCounter{
+				RequestCounters: []types.RequestCounter{
 					{
 						LaunchID: launchID1,
 						Counter:  0,
@@ -351,11 +351,11 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "request counter not associated with chain",
+			desc: "should prevent validate genesis with a request counter not associated with chain",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				RequestCounterList: []types.RequestCounter{
+				RequestCounters: []types.RequestCounter{
 					{
 						LaunchID: noExistLaunchID,
 						Counter:  0,
@@ -366,17 +366,17 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 		{
-			desc: "request counter below a request id",
+			desc: "should prevent validate genesis with a request counter below a request id",
 			genState: &types.GenesisState{
-				ChainList:    sampleChainList,
+				Chains:       sampleChains,
 				ChainCounter: 10,
-				RequestCounterList: []types.RequestCounter{
+				RequestCounters: []types.RequestCounter{
 					{
 						LaunchID: launchID1,
 						Counter:  5,
 					},
 				},
-				RequestList: []types.Request{
+				Requests: []types.Request{
 					{
 						LaunchID:  launchID1,
 						RequestID: 10,
@@ -387,7 +387,6 @@ func TestGenesisState_Validate(t *testing.T) {
 			shouldBeValid: false,
 		},
 	} {
-		tc := tc
 		t.Run(tc.desc, func(t *testing.T) {
 			err := tc.genState.Validate()
 			if !tc.shouldBeValid {
@@ -397,29 +396,29 @@ func TestGenesisState_Validate(t *testing.T) {
 			require.NoError(t, err)
 
 			launchIDMap := make(map[uint64]struct{})
-			for _, elem := range tc.genState.ChainList {
+			for _, elem := range tc.genState.Chains {
 				launchIDMap[elem.LaunchID] = struct{}{}
 			}
 
-			for _, acc := range tc.genState.RequestList {
+			for _, acc := range tc.genState.Requests {
 				// check if the chain exist for requests
 				_, ok := launchIDMap[acc.LaunchID]
 				require.True(t, ok)
 			}
 
-			for _, acc := range tc.genState.GenesisValidatorList {
+			for _, acc := range tc.genState.GenesisValidators {
 				// check if the chain exist for validators
 				_, ok := launchIDMap[acc.LaunchID]
 				require.True(t, ok)
 			}
 
-			for _, acc := range tc.genState.GenesisAccountList {
+			for _, acc := range tc.genState.GenesisAccounts {
 				// check if the chain exist for genesis accounts
 				_, ok := launchIDMap[acc.LaunchID]
 				require.True(t, ok)
 			}
 
-			for _, acc := range tc.genState.VestingAccountList {
+			for _, acc := range tc.genState.VestingAccounts {
 				// check if the chain exist for vesting accounts
 				_, ok := launchIDMap[acc.LaunchID]
 				require.True(t, ok)
@@ -435,21 +434,22 @@ func TestGenesisState_ValidateParams(t *testing.T) {
 		shouldBeValid bool
 	}{
 		{
-			desc: "should fail if params are invalid",
+			desc: "should prevent validate genesis with invalid params",
 			genState: types.GenesisState{
-				Params: types.NewParams(types.DefaultMinLaunchTime, types.MaxParametrableLaunchTime+1, types.DefaultRevertDelay, types.DefaultChainCreationFee),
+				Params: types.NewParams(types.DefaultMinLaunchTime, types.MaxParametrableLaunchTime+1,
+					types.DefaultRevertDelay, types.DefaultFee, types.DefaultFee, types.DefaultMaxMetadataLength),
 			},
 			shouldBeValid: false,
 		},
 		{
-			desc: "valid params",
+			desc: "should validate genesis with valid params",
 			genState: types.GenesisState{
-				Params: types.NewParams(types.DefaultMinLaunchTime, types.DefaultMaxLaunchTime, types.DefaultRevertDelay, types.DefaultChainCreationFee),
+				Params: types.NewParams(types.DefaultMinLaunchTime, types.DefaultMaxLaunchTime,
+					types.DefaultRevertDelay, types.DefaultFee, types.DefaultFee, types.DefaultMaxMetadataLength),
 			},
 			shouldBeValid: true,
 		},
 	} {
-		tc := tc
 		t.Run(tc.desc, func(t *testing.T) {
 			err := tc.genState.Validate()
 			if tc.shouldBeValid {

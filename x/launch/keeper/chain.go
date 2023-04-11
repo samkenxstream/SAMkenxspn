@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -16,14 +17,18 @@ func (k Keeper) CreateNewChain(
 	coordinatorID uint64,
 	genesisChainID,
 	sourceURL,
-	sourceHash,
-	genesisURL,
-	genesisHash string,
+	sourceHash string,
+	initialGenesis types.InitialGenesis,
 	hasCampaign bool,
 	campaignID uint64,
 	isMainnet bool,
+	accountBalance sdk.Coins,
 	metadata []byte,
 ) (uint64, error) {
+	coord, found := k.profileKeeper.GetCoordinator(ctx, coordinatorID)
+	if !found {
+		return 0, fmt.Errorf("the coordinator %d doesn't exist", coordinatorID)
+	}
 
 	chain := types.Chain{
 		CoordinatorID:   coordinatorID,
@@ -31,19 +36,14 @@ func (k Keeper) CreateNewChain(
 		CreatedAt:       ctx.BlockTime().Unix(),
 		SourceURL:       sourceURL,
 		SourceHash:      sourceHash,
+		InitialGenesis:  initialGenesis,
 		HasCampaign:     hasCampaign,
 		CampaignID:      campaignID,
 		IsMainnet:       isMainnet,
 		LaunchTriggered: false,
-		LaunchTimestamp: 0,
+		LaunchTime:      time.Unix(0, 0).UTC(),
+		AccountBalance:  accountBalance,
 		Metadata:        metadata,
-	}
-
-	// Initialize initial genesis
-	if genesisURL == "" {
-		chain.InitialGenesis = types.NewDefaultInitialGenesis()
-	} else {
-		chain.InitialGenesis = types.NewGenesisURL(genesisURL, genesisHash)
 	}
 
 	if err := chain.Validate(); err != nil {
@@ -73,11 +73,12 @@ func (k Keeper) CreateNewChain(
 		if err := k.campaignKeeper.AddChainToCampaign(ctx, campaignID, launchID); err != nil {
 			return 0, err
 		}
-
 	}
 
 	return launchID, ctx.EventManager().EmitTypedEvent(&types.EventChainCreated{
-		LaunchID: launchID,
+		LaunchID:           launchID,
+		CoordinatorAddress: coord.Address,
+		CoordinatorID:      coordinatorID,
 	})
 }
 
